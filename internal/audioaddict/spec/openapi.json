@@ -1,0 +1,2143 @@
+{
+  "basePath": "/",
+  "consumes": [
+    "application/json"
+  ],
+  "definitions": {
+    "ActiveListenerSession": {
+      "properties": {
+        "client_device_category": {
+          "enum": [
+            "Other"
+          ],
+          "type": "string"
+        },
+        "client_device_description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "integer"
+        },
+        "last_played_at": {
+          "type": "string"
+        }
+      }
+    },
+    "ActiveMemberSession": {
+      "properties": {
+        "client_device_category": {
+          "enum": [
+            "browser",
+            "mobile",
+            "native_mobile",
+            "other"
+          ],
+          "type": "string"
+        },
+        "client_device_description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "last_played_at": {
+          "type": "string"
+        }
+      }
+    },
+    "Channel": {
+      "properties": {
+        "ad_dfp_unit_id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "description_long": {
+          "type": "string"
+        },
+        "description_short": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "name"
+      ]
+    },
+    "ChannelFilter": {
+      "properties": {
+        "channels": {
+          "items": {
+            "type": "Channel"
+          },
+          "type": "array"
+        },
+        "description_text": {
+          "type": "text"
+        },
+        "description_title": {
+          "type": "string"
+        },
+        "display": {
+          "type": "boolean"
+        },
+        "display_description": {
+          "type": "boolean"
+        },
+        "genre": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "network_id": {
+          "type": "integer"
+        },
+        "position": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "network_id"
+      ]
+    },
+    "ChannelFilterShallow": {
+      "properties": {
+        "channel_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "description_text": {
+          "type": "text"
+        },
+        "description_title": {
+          "type": "string"
+        },
+        "display": {
+          "type": "boolean"
+        },
+        "display_description": {
+          "type": "boolean"
+        },
+        "genre": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "network_id": {
+          "type": "integer"
+        },
+        "position": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "network_id"
+      ]
+    },
+    "ChannelSearchResult": {
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "name",
+        "images"
+      ]
+    },
+    "DataPreference": {
+      "properties": {
+        "consented_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "gdpr": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "marketing_and_promotions": {
+          "type": "boolean"
+        },
+        "member_id": {
+          "type": "integer"
+        },
+        "network_id": {
+          "type": "integer"
+        },
+        "newsletters": {
+          "type": "boolean"
+        },
+        "personalize_ads": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Device": {
+      "properties": {
+        "app_version": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "operating_system": {
+          "type": "string"
+        },
+        "os_version": {
+          "type": "string"
+        }
+      }
+    },
+    "Facet": {
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "field": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "active",
+        "count",
+        "field",
+        "label"
+      ]
+    },
+    "Image": {
+      "properties": {
+        "default": {
+          "type": "string"
+        },
+        "horizontal_banner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "default",
+        "horizontal_banner"
+      ]
+    },
+    "LightChannelFilter": {
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "shows_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "LightEpisodeList": {
+      "properties": {
+        "artists_tagline": {
+          "type": "string"
+        },
+        "free": {
+          "type": "boolean"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "name": {
+          "type": "string"
+        },
+        "show": {
+          "type": "Show"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "start_at": {
+          "type": "string"
+        },
+        "tracks": {
+          "items": {
+            "type": "Track"
+          },
+          "type": "array"
+        }
+      }
+    },
+    "LightEventPresenter": {
+      "properties": {
+        "artists_tagline": {
+          "type": "string"
+        },
+        "description_html": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "end_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "show": {
+          "$ref": "#/definitions/LightEventShowPresenter"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "start_at": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "tracks": {
+          "items": {
+            "type": "Track"
+          },
+          "type": "array"
+        }
+      }
+    },
+    "LightEventShowPresenter": {
+      "properties": {
+        "artists_tagline": {
+          "type": "string"
+        },
+        "channel_id": {
+          "type": "integer"
+        },
+        "human_readable_schedule": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "LightPlaylist": {
+      "properties": {
+        "channel_filter_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "channel_id": {
+          "type": "integer"
+        },
+        "curator": {
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "follow_count": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "length": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "play_count": {
+          "type": "integer"
+        },
+        "popularity": {
+          "type": "number"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "type": "array"
+        },
+        "track_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug"
+      ]
+    },
+    "LightShow": {
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "artists_tagline": {
+          "type": "string"
+        },
+        "channel_filter_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "channel_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "follows_count": {
+          "type": "integer"
+        },
+        "human_readable_schedule": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "name": {
+          "type": "string"
+        },
+        "next_end_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "next_start_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "MemberExperimentInput": {
+      "properties": {
+        "experiment_id": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "experiment_name": {
+          "type": "string"
+        },
+        "variant_id": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "variant_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "experiment_id",
+        "variant_id"
+      ],
+      "type": "object"
+    },
+    "Network": {
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "OnboardingResult": {
+      "properties": {
+        "client_platform_bit": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "selected_items": {
+          "items": {
+            "properties": {
+              "auto": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "integer"
+              },
+              "item_id": {
+                "type": "integer"
+              },
+              "item_type": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "OnboardingSuggestion": {
+      "properties": {
+        "channel_filter_id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "item_id": {
+          "type": "integer"
+        },
+        "item_type": {
+          "enum": [
+            "playlist",
+            "channel"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "OnboardingTrackSample": {
+      "properties": {
+        "content_length": {
+          "type": "integer"
+        },
+        "content_url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "PremiumPass": {
+      "properties": {
+        "activated_at": {
+          "description": "Timestamp at activation (nil for ready state).",
+          "type": "string"
+        },
+        "duration_days": {
+          "description": "Duration for which a premium pass is active, configured in platform, 2-7 days",
+          "type": "integer",
+          "value": 5
+        },
+        "expires_at": {
+          "description": "Timestamp at expiration (nil for ready state).",
+          "type": "string"
+        },
+        "status": {
+          "description": "Current state of premium pass",
+          "enum": [
+            "ready",
+            "active",
+            "expired",
+            "unavailable"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "Show": {
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "artists_tagline": {
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/definitions/Channel"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "description_html": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "facebook_images": {
+          "$ref": "#/definitions/Image"
+        },
+        "following": {
+          "type": "boolean"
+        },
+        "human_readable_schedule": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "most_recent_events": {
+          "items": {
+            "$ref": "#/definitions/ShowEvent"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "next_end_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "next_start_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "ondemand_episode_count": {
+          "type": "integer"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "tagline": {
+          "type": "string"
+        },
+        "upcoming_event": {
+          "$ref": "#/definitions/ShowEvent"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "duration",
+        "tagline",
+        "active",
+        "artists_tagline",
+        "description_html",
+        "images",
+        "human_readable_schedule",
+        "next_start_at",
+        "next_end_at",
+        "most_recent_events",
+        "slug",
+        "upcoming_event",
+        "ondemand_episode_count",
+        "channels",
+        "artists",
+        "following",
+        "facebook_images?"
+      ]
+    },
+    "ShowEvent": {
+      "properties": {
+        "artists_tagline": {
+          "type": "string"
+        },
+        "description_html": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "end_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "name": {
+          "type": "string"
+        },
+        "show_id": {
+          "type": "integer"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "start_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "ShowSearchResult": {
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "artists_tagline": {
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/definitions/ChannelSearchResult"
+          },
+          "type": "array"
+        },
+        "followers_count": {
+          "type": "integer"
+        },
+        "following": {
+          "type": "boolean"
+        },
+        "human_readable_schedule": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "images": {
+          "$ref": "#/definitions/Image"
+        },
+        "name": {
+          "type": "string"
+        },
+        "next_end_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "next_start_at": {
+          "format": "date",
+          "type": "string"
+        },
+        "now_playing": {
+          "type": "boolean"
+        },
+        "ondemand_episode_count": {
+          "type": "integer"
+        },
+        "slug": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug",
+        "artists_tagline",
+        "human_readable_schedule",
+        "next_start_at",
+        "next_end_at",
+        "ondemand_episode_count",
+        "channels",
+        "images",
+        "now_playing",
+        "following",
+        "followers_count",
+        "active"
+      ]
+    },
+    "ShowSearchResults": {
+      "properties": {
+        "metadata": {
+          "items": {
+            "$ref": "#/definitions/Facet"
+          },
+          "type": "array"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/definitions/ShowSearchResult"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "metadata",
+        "results"
+      ]
+    },
+    "SkipRuleset": {
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "listener_type": {
+          "enum": [
+            "guest",
+            "public",
+            "premium"
+          ],
+          "type": "string"
+        },
+        "territories": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "window_duration": {
+          "type": "integer"
+        },
+        "window_unit": {
+          "enum": [
+            "seconds",
+            "minutes",
+            "hours",
+            "days",
+            "weeks",
+            "months",
+            "years"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "listener_type",
+        "territories",
+        "window_unit",
+        "window_duration",
+        "limit"
+      ]
+    },
+    "SkipRulesetWithSkipsRemaining": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SkipRuleset"
+        },
+        {
+          "properties": {
+            "expires_at": {
+              "type": "string"
+            },
+            "skips_remaining": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "skips_remaining"
+          ]
+        }
+      ]
+    },
+    "StreamingMemberSession": {
+      "properties": {
+        "device": {
+          "$ref": "#/definitions/Device"
+        },
+        "network": {
+          "$ref": "#/definitions/Network"
+        },
+        "session_id": {
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "host": "api.audioaddict.com",
+  "info": {
+    "contact": {
+      "name": "Digitally Imported, support@di.fm"
+    },
+    "description": "A suite of internet radio services and related metadata, membership,\npreference, and advertising functions.\n\nHTTPS is preferred for all requests. HTTP/2 is available on all\nendpoints, and is also preferred if your client supports it.\n\nUse a unique, meaningful `User-Agent` string when sending requests to\nthe API. Version your `User-Agent` header (eg, append a -v1 or similar)\nto allow for varying functionality based on client in the future.\n",
+    "termsOfService": "https://www.di.fm/member/tos",
+    "title": "AudioAddict Platform API",
+    "version": "1"
+  },
+  "paths": {
+    "/v1/:network/members/:member_id/active_sessions": {
+      "get": {
+        "description": "Obtain a list of all active member sessions ordered by last_listened_at",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ActiveMemberSession"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "summary": "Get active member sessions",
+        "tags": [
+          "Active Sessions"
+        ]
+      }
+    },
+    "/v1/:network/members/:member_id/icecast_sessions": {
+      "get": {
+        "description": "Obtain a list of all active icecast sessions",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ActiveListenerSession"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "summary": "Get active icecast sessions",
+        "tags": [
+          "Active Sessions"
+        ]
+      }
+    },
+    "/v1/:network_key/channel_filters": {
+      "get": {
+        "description": "Obtain a full list of all visible channel filters and containing channels",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ChannelFilter"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all visible channel filters",
+        "tags": [
+          "channel_filters"
+        ]
+      }
+    },
+    "/v1/:network_key/channel_filters/suggestions": {
+      "get": {
+        "description": "Get a list of suggestions for channel filters for onboarding",
+        "parameters": [
+          {
+            "in": "query",
+            "items": {
+              "type": "integer"
+            },
+            "name": "ids[]",
+            "required": true,
+            "type": "array"
+          },
+          {
+            "default": 15,
+            "in": "query",
+            "name": "limit",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/OnboardingSuggestion"
+              },
+              "type": "array"
+            }
+          },
+          "400": {
+            "description": "invalid ids[]"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get onboarding suggestions for channel filters",
+        "tags": [
+          "channel_filters",
+          "onboarding"
+        ]
+      }
+    },
+    "/v1/:network_key/channel_filters?shallow=1": {
+      "get": {
+        "description": "Obtain a shallow list of all visible channel filters",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ChannelFilterShallow"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all visible channel filters - Shallow Response",
+        "tags": [
+          "channel_filters"
+        ]
+      }
+    },
+    "/v1/:network_key/channels": {
+      "get": {
+        "description": "Obtain a list of all active channels and metadata",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/Channel"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all channels",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/v1/:network_key/channels/:id/sample": {
+      "get": {
+        "description": "Get a list of samples of a channel for onboarding",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/OnboardingTrackSample"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Channel not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Channel samples list for onboarding",
+        "tags": [
+          "channels",
+          "onboarding"
+        ]
+      }
+    },
+    "/v1/:network_key/events?light=true": {
+      "get": {
+        "description": "Obtain a light response for a list of episodes",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/LightEventPresenter"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "summary": "Get Events (light)",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/:network_key/listen_later_events": {
+      "get": {
+        "description": "Obtain a list of episodes for listen later list",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/LightEpisodeList"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "summary": "Get Listener Later Events",
+        "tags": [
+          "listen later"
+        ]
+      }
+    },
+    "/v1/:network_key/listener_type": {
+      "get": {
+        "description": "Provided a valid audio_token, returns a listener's type (public/premium/guest)",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "properties": {
+                "listener_type": {
+                  "description": "a valid listener's type (public/premium/guest)",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - A valid listener is required"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get Listener Type",
+        "tags": [
+          "listener type"
+        ]
+      }
+    },
+    "/v1/:network_key/member_experiments": {
+      "post": {
+        "description": "Members who *participate* in an A/B testing experiment should post to this endpoint. Participation differs from enrollment in that participants actually interact with experiment changes.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "member_experiment",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MemberExperimentInput"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "created"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Create or update a member experiment participation record",
+        "tags": [
+          "a/b testing"
+        ]
+      }
+    },
+    "/v1/:network_key/members/:id/premium_pass/(:device_uid)": {
+      "get": {
+        "description": "Obtains premium pass object for a member",
+        "parameters": [
+          {
+            "description": "Uid of mobile device (Optional for browser)",
+            "in": "path",
+            "name": "device_uid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/PremiumPass"
+            }
+          },
+          "400": {
+            "description": "When member_id in the url does not belong to the active session"
+          }
+        },
+        "summary": "Premium Pass Lookup",
+        "tags": [
+          "Premium Pass"
+        ]
+      }
+    },
+    "/v1/:network_key/members/:id/premium_pass/:device_uid": {
+      "post": {
+        "description": "Activates a premium pass for a member",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/PremiumPass"
+            }
+          },
+          "400": {
+            "description": "When pass is already active or expired or unavailable"
+          }
+        },
+        "summary": "Premium Pass Activation",
+        "tags": [
+          "Premium Pass"
+        ]
+      }
+    },
+    "/v1/:network_key/members/:member_id/data_preferences": {
+      "get": {
+        "description": "Obtain member's Data Preferences (Privacy Settings)",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/DataPreference"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get member's Data Preferences",
+        "tags": [
+          "member data preferences"
+        ]
+      },
+      "put": {
+        "description": "Creates or updates member's Data Preferences (Privacy Settings)",
+        "parameters": [
+          {
+            "in": "body",
+            "schema": {
+              "properties": {
+                "data_preference": {
+                  "properties": {
+                    "marketing_and_promotions": {
+                      "required": true,
+                      "type": "boolean"
+                    },
+                    "newsletters": {
+                      "type": "boolean"
+                    },
+                    "personalize_ads": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "data_preference"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success (update)"
+          },
+          "201": {
+            "description": "created (create)"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Create or Update member's Data Preferences",
+        "tags": [
+          "member data preferences"
+        ]
+      }
+    },
+    "/v1/:network_key/members/:member_id/onboarding": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/OnboardingResult"
+            }
+          },
+          "404": {
+            "description": "Onboarding not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get latest onboarding submission",
+        "tags": [
+          "members",
+          "onboarding"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "in": "body",
+            "schema": {
+              "properties": {
+                "selected_items": {
+                  "items": {
+                    "properties": {
+                      "auto": {
+                        "type": "boolean"
+                      },
+                      "item_id": {
+                        "type": "integer"
+                      },
+                      "item_type": {
+                        "enum": [
+                          "channel",
+                          "playlist",
+                          "channel_filter"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "selected_items"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "success"
+          },
+          "422": {
+            "description": "validation error",
+            "schema": {
+              "properties": {
+                "errors": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "errors"
+              ],
+              "type": "object"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Submit onboarding results",
+        "tags": [
+          "members",
+          "onboarding"
+        ]
+      }
+    },
+    "/v1/:network_key/mobile/notification": {
+      "get": {
+        "description": "In case there are more than one active notification , the newest will be returned. Notification with type `forced_updated` takes precedence over `announcement`.",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "notification_type": {
+                  "description": "a notification's type",
+                  "enum": [
+                    "announcement",
+                    "forced_update"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "notification_type",
+                "message"
+              ]
+            }
+          },
+          "204": {
+            "description": "no active notification found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get an active mobile notification",
+        "tags": [
+          "mobile"
+        ]
+      }
+    },
+    "/v1/:network_key/oauth/app_info": {
+      "get": {
+        "description": "Used for Alexa integration",
+        "responses": {
+          "200": {
+            "description": "Show app info",
+            "schema": {
+              "properties": {
+                "client_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "client_id"
+              ]
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Return app info for client_id",
+        "tags": [
+          "alexa oauth"
+        ]
+      }
+    },
+    "/v1/:network_key/oauth/audio_token": {
+      "post": {
+        "description": "Used for Alexa integration",
+        "responses": {
+          "201": {
+            "description": "successfully created an audio token",
+            "schema": {
+              "properties": {
+                "audio_token": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "client_id",
+                "redirect_uri"
+              ]
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Generate an Oauth audio token",
+        "tags": [
+          "alexa oauth"
+        ]
+      }
+    },
+    "/v1/:network_key/playlists/:id/sample": {
+      "get": {
+        "description": "Get a list of samples of a playlist for onboarding",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/OnboardingTrackSample"
+              },
+              "type": "array"
+            }
+          },
+          "404": {
+            "description": "Playlist not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Playlist samples list for onboarding",
+        "tags": [
+          "playlists",
+          "onboarding"
+        ]
+      }
+    },
+    "/v1/:network_key/playlists/all": {
+      "get": {
+        "description": "Get all curated playlists for a network, sorted by popularity",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/LightPlaylist"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all curated playlists",
+        "tags": [
+          "playlists"
+        ]
+      }
+    },
+    "/v1/:network_key/shows": {
+      "get": {
+        "description": "Obtain a full list of all visible shows",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/ShowSearchResults"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get shows list",
+        "tags": [
+          "shows"
+        ]
+      }
+    },
+    "/v1/:network_key/shows/:id": {
+      "get": {
+        "description": "Obtain a single show by ID",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/Show"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get show",
+        "tags": [
+          "shows"
+        ]
+      }
+    },
+    "/v1/:network_key/shows/channel_filters": {
+      "get": {
+        "description": "Channel filter tags for the show page buttons",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/LightChannelFilter"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get channel filter tags",
+        "tags": [
+          "shows",
+          "channel_filters"
+        ]
+      }
+    },
+    "/v1/:network_key/shows/index": {
+      "get": {
+        "description": "Get shows",
+        "parameters": [
+          {
+            "description": "ID of channel filter for shows filtering",
+            "format": "int32",
+            "in": "query",
+            "name": "channel_filter_id",
+            "type": "integer"
+          },
+          {
+            "description": "ID of channel for shows filtering",
+            "format": "int32",
+            "in": "query",
+            "name": "channel_id",
+            "type": "integer"
+          },
+          {
+            "collectionFormat": "multi",
+            "description": "Array of keys for shows ordering (by default orders by ID)",
+            "in": "query",
+            "items": {
+              "type": "string"
+            },
+            "name": "order_by[]",
+            "type": "array"
+          },
+          {
+            "description": "Page for pagination",
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "type": "integer"
+          },
+          {
+            "description": "Amount of records per page",
+            "format": "int32",
+            "in": "query",
+            "name": "per_page",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/LightShow"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get shows",
+        "tags": [
+          "shows"
+        ]
+      }
+    },
+    "/v1/:network_key/skip_events": {
+      "post": {
+        "description": "Submit a skip event",
+        "parameters": [
+          {
+            "description": "The seconds into a track where the skip happened",
+            "in": "query",
+            "name": "skipped_at",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The ID of the track that was skipped",
+            "in": "query",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The ID of the playlist the track was playing in",
+            "in": "query",
+            "name": "playlist_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The ID of the event the track was playing in",
+            "in": "query",
+            "name": "event_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The ID of the channel the track was playing in",
+            "in": "query",
+            "name": "channel_id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "skip recorded and allowed",
+            "schema": {
+              "properties": {
+                "expires_at": {
+                  "type": "string"
+                },
+                "skips_remaining": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "skips_remaining",
+                "expires_at"
+              ]
+            }
+          },
+          "403": {
+            "description": "skip not recorded, forbidden"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "You must pass one of playlist_id, channel_id or event_id.",
+        "tags": [
+          "track skipping"
+        ]
+      }
+    },
+    "/v1/:network_key/skip_rulesets": {
+      "get": {
+        "description": "Obtain a list of all skipping policies",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/SkipRuleset"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all skipping policies",
+        "tags": [
+          "track skipping"
+        ]
+      }
+    },
+    "/v1/:network_key/skip_rulesets/active": {
+      "get": {
+        "description": "Obtain an active skipping policy available to the listener",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/SkipRulesetWithSkipsRemaining"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get an active skipping policy",
+        "tags": [
+          "track skipping"
+        ]
+      }
+    },
+    "/v1/:network_key/streaming/:audio_token": {
+      "post": {
+        "description": "Keeps track of active streams and handles parallel streams limitations",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "429": {
+            "description": "stop streaming",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/StreamingMemberSession"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "summary": "Record active streams",
+        "tags": [
+          "streaming"
+        ]
+      }
+    },
+    "/v1/:network_key/survey_responses": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "schema": {
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "created"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Create a survey response record",
+        "tags": [
+          "member surveys"
+        ]
+      }
+    },
+    "/v1/:network_key/track_positions/for_track": {
+      "get": {
+        "description": "Pass a track ID to get a position record",
+        "summary": "View a track position record for a track.",
+        "tags": [
+          "Track Positions"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The ID of the track you want to get a stored position for",
+          "in": "query",
+          "name": "track_id",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ]
+    },
+    "/v1/:network_key/track_positions/update_for_track": {
+      "put": {
+        "description": "A record will be created if none exists",
+        "parameters": [
+          {
+            "description": "The ID of the track the user is listening to",
+            "in": "query",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The position in the track you want to update to, in seconds",
+            "in": "query",
+            "name": "position",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "summary": "Update a track position record for a user/track",
+        "tags": [
+          "Track Positions"
+        ]
+      }
+    },
+    "/v1/channels/:id": {
+      "get": {
+        "description": "Obtain a single channel and metadata by ID",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/Channel"
+            }
+          },
+          "404": {
+            "description": "Channel with ID not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get a single channel by ID",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/v1/channels/key/:key": {
+      "get": {
+        "description": "Obtain a single channel and metadata by key",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/Channel"
+            }
+          },
+          "404": {
+            "description": "Channel with key not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get a single channel by key",
+        "tags": [
+          "channels"
+        ]
+      }
+    },
+    "/v1/network/:id": {
+      "get": {
+        "description": "Obtain a single network and metadata by ID",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/Network"
+            }
+          },
+          "404": {
+            "description": "Network with ID not found"
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get a single network",
+        "tags": [
+          "networks"
+        ]
+      }
+    },
+    "/v1/networks": {
+      "get": {
+        "description": "Obtain a list of all active networks and metadata",
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/Network"
+              },
+              "type": "array"
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Get all networks",
+        "tags": [
+          "networks"
+        ]
+      }
+    },
+    "/v1/ping": {
+      "get": {
+        "description": "Returns 200 OK and client debug information",
+        "responses": {
+          "200": {
+            "description": "ping success",
+            "schema": {
+              "properties": {
+                "api_version": {
+                  "type": "number"
+                },
+                "country": {
+                  "description": "detected client GeoIP country",
+                  "type": "string"
+                },
+                "country_code": {
+                  "description": "detected client GeoIP country code",
+                  "type": "string"
+                },
+                "ip": {
+                  "description": "detected client IP address",
+                  "type": "string"
+                },
+                "time": {
+                  "description": "official server time and date",
+                  "format": "RFC2822",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error, any other code"
+          }
+        },
+        "summary": "Healthcheck ping endpoint",
+        "tags": [
+          "general"
+        ]
+      }
+    }
+  },
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "api_key": {
+      "deprecated": true,
+      "description": "Member-based auth which provides global access to act as a user on the API. Prefer using a session-based token like the Audio Token or Session Key instead.\n",
+      "in": "header",
+      "name": "X-Api-Key",
+      "type": "apiKey"
+    },
+    "audio_token": {
+      "description": "Session-based auth only valid for operations related to audio playback and performance reporting. Less-sensitive alternative to Session Keys which cannot be used for any member or billing related API calls.\n",
+      "in": "header",
+      "name": "X-Audio-Token",
+      "type": "apiKey"
+    },
+    "session_key": {
+      "description": "Unique bearer token for identifying a specific member session, provides full API access in all auth contexts.\n",
+      "in": "header",
+      "name": "X-Session-Key",
+      "type": "apiKey"
+    }
+  },
+  "swagger": "2.0"
+}

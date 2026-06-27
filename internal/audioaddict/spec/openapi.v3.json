@@ -1,0 +1,1026 @@
+{
+  "basePath": "/",
+  "components": {
+    "schemas": {
+      "ActiveListenerSession": {
+        "properties": {
+          "client_device_category": {
+            "enum": [
+              "Other"
+            ],
+            "type": "string"
+          },
+          "client_device_description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "integer"
+          },
+          "last_played_at": {
+            "type": "string"
+          }
+        }
+      },
+      "ActiveMemberSession": {
+        "properties": {
+          "client_device_category": {
+            "enum": [
+              "browser",
+              "mobile",
+              "native_mobile",
+              "other"
+            ],
+            "type": "string"
+          },
+          "client_device_description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "last_played_at": {
+            "type": "string"
+          }
+        }
+      },
+      "Channel": {
+        "properties": {
+          "ad_dfp_unit_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_long": {
+            "type": "string"
+          },
+          "description_short": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ]
+      },
+      "ChannelFilter": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/Channel"
+            },
+            "type": "array"
+          },
+          "description_text": {
+            "type": "string"
+          },
+          "description_title": {
+            "type": "string"
+          },
+          "display": {
+            "type": "boolean"
+          },
+          "display_description": {
+            "type": "boolean"
+          },
+          "genre": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network_id": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "network_id"
+        ]
+      },
+      "ChannelFilterShallow": {
+        "properties": {
+          "channel_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "description_text": {
+            "type": "string"
+          },
+          "description_title": {
+            "type": "string"
+          },
+          "display": {
+            "type": "boolean"
+          },
+          "display_description": {
+            "type": "boolean"
+          },
+          "genre": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network_id": {
+            "type": "integer"
+          },
+          "position": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "network_id"
+        ]
+      },
+      "ChannelSearchResult": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "images"
+        ]
+      },
+      "DataPreference": {
+        "properties": {
+          "consented_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "gdpr": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "marketing_and_promotions": {
+            "type": "boolean"
+          },
+          "member_id": {
+            "type": "integer"
+          },
+          "network_id": {
+            "type": "integer"
+          },
+          "newsletters": {
+            "type": "boolean"
+          },
+          "personalize_ads": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Device": {
+        "properties": {
+          "app_version": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operating_system": {
+            "type": "string"
+          },
+          "os_version": {
+            "type": "string"
+          }
+        }
+      },
+      "Facet": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "field": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "active",
+          "count",
+          "field",
+          "label"
+        ]
+      },
+      "Image": {
+        "properties": {
+          "default": {
+            "type": "string"
+          },
+          "horizontal_banner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "default",
+          "horizontal_banner"
+        ]
+      },
+      "LightChannelFilter": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shows_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LightEpisodeList": {
+        "properties": {
+          "artists_tagline": {
+            "type": "string"
+          },
+          "free": {
+            "type": "boolean"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "name": {
+            "type": "string"
+          },
+          "show": {
+            "$ref": "#/components/schemas/Show"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "LightEventPresenter": {
+        "properties": {
+          "artists_tagline": {
+            "type": "string"
+          },
+          "description_html": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "end_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "show": {
+            "$ref": "#/components/schemas/LightEventShowPresenter"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "LightEventShowPresenter": {
+        "properties": {
+          "artists_tagline": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "integer"
+          },
+          "human_readable_schedule": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "LightPlaylist": {
+        "properties": {
+          "channel_filter_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "channel_id": {
+            "type": "integer"
+          },
+          "curator": {
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "follow_count": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "play_count": {
+            "type": "integer"
+          },
+          "popularity": {
+            "type": "number"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "type": "array"
+          },
+          "track_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ]
+      },
+      "LightShow": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "artists_tagline": {
+            "type": "string"
+          },
+          "channel_filter_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "channel_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "follows_count": {
+            "type": "integer"
+          },
+          "human_readable_schedule": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_end_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "next_start_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "MemberExperimentInput": {
+        "properties": {
+          "experiment_id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "experiment_name": {
+            "type": "string"
+          },
+          "variant_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "variant_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "experiment_id",
+          "variant_id"
+        ],
+        "type": "object"
+      },
+      "Network": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "OnboardingResult": {
+        "properties": {
+          "client_platform_bit": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "selected_items": {
+            "items": {
+              "properties": {
+                "auto": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "integer"
+                },
+                "item_id": {
+                  "type": "integer"
+                },
+                "item_type": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "OnboardingSuggestion": {
+        "properties": {
+          "channel_filter_id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "item_type": {
+            "enum": [
+              "playlist",
+              "channel"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "OnboardingTrackSample": {
+        "properties": {
+          "content_length": {
+            "type": "integer"
+          },
+          "content_url": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "PremiumPass": {
+        "properties": {
+          "activated_at": {
+            "description": "Timestamp at activation (nil for ready state).",
+            "type": "string"
+          },
+          "duration_days": {
+            "description": "Duration for which a premium pass is active, configured in platform, 2-7 days",
+            "type": "integer",
+            "value": 5
+          },
+          "expires_at": {
+            "description": "Timestamp at expiration (nil for ready state).",
+            "type": "string"
+          },
+          "status": {
+            "description": "Current state of premium pass",
+            "enum": [
+              "ready",
+              "active",
+              "expired",
+              "unavailable"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "Show": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "artists_tagline": {
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/Channel"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_html": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "facebook_images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "following": {
+            "type": "boolean"
+          },
+          "human_readable_schedule": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "most_recent_events": {
+            "items": {
+              "$ref": "#/components/schemas/ShowEvent"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_end_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "next_start_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "ondemand_episode_count": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "upcoming_event": {
+            "$ref": "#/components/schemas/ShowEvent"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "duration",
+          "tagline",
+          "active",
+          "artists_tagline",
+          "description_html",
+          "images",
+          "human_readable_schedule",
+          "next_start_at",
+          "next_end_at",
+          "most_recent_events",
+          "slug",
+          "upcoming_event",
+          "ondemand_episode_count",
+          "channels",
+          "artists",
+          "following",
+          "facebook_images?"
+        ]
+      },
+      "ShowEvent": {
+        "properties": {
+          "artists_tagline": {
+            "type": "string"
+          },
+          "description_html": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "end_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "name": {
+            "type": "string"
+          },
+          "show_id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "start_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "subtitle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ShowSearchResult": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "artists_tagline": {
+            "type": "string"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelSearchResult"
+            },
+            "type": "array"
+          },
+          "followers_count": {
+            "type": "integer"
+          },
+          "following": {
+            "type": "boolean"
+          },
+          "human_readable_schedule": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_end_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "next_start_at": {
+            "format": "date",
+            "type": "string"
+          },
+          "now_playing": {
+            "type": "boolean"
+          },
+          "ondemand_episode_count": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "artists_tagline",
+          "human_readable_schedule",
+          "next_start_at",
+          "next_end_at",
+          "ondemand_episode_count",
+          "channels",
+          "images",
+          "now_playing",
+          "following",
+          "followers_count",
+          "active"
+        ]
+      },
+      "ShowSearchResults": {
+        "properties": {
+          "metadata": {
+            "items": {
+              "$ref": "#/components/schemas/Facet"
+            },
+            "type": "array"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ShowSearchResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "metadata",
+          "results"
+        ]
+      },
+      "SkipRuleset": {
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "listener_type": {
+            "enum": [
+              "guest",
+              "public",
+              "premium"
+            ],
+            "type": "string"
+          },
+          "territories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "window_duration": {
+            "type": "integer"
+          },
+          "window_unit": {
+            "enum": [
+              "seconds",
+              "minutes",
+              "hours",
+              "days",
+              "weeks",
+              "months",
+              "years"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "listener_type",
+          "territories",
+          "window_unit",
+          "window_duration",
+          "limit"
+        ]
+      },
+      "SkipRulesetWithSkipsRemaining": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SkipRuleset"
+          },
+          {
+            "properties": {
+              "expires_at": {
+                "type": "string"
+              },
+              "skips_remaining": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "skips_remaining"
+            ]
+          }
+        ]
+      },
+      "StreamingMemberSession": {
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/Device"
+          },
+          "network": {
+            "$ref": "#/components/schemas/Network"
+          },
+          "session_id": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string"
+          }
+        }
+      },
+      "Track": {
+        "properties": {
+          "art_url": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "track": {
+            "description": "raw 'Artist - Title' string",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "host": "api.audioaddict.com",
+  "info": {
+    "contact": {
+      "name": "Digitally Imported, support@di.fm"
+    },
+    "description": "A suite of internet radio services and related metadata, membership,\npreference, and advertising functions.\n\nHTTPS is preferred for all requests. HTTP/2 is available on all\nendpoints, and is also preferred if your client supports it.\n\nUse a unique, meaningful `User-Agent` string when sending requests to\nthe API. Version your `User-Agent` header (eg, append a -v1 or similar)\nto allow for varying functionality based on client in the future.\n",
+    "termsOfService": "https://www.di.fm/member/tos",
+    "title": "AudioAddict Platform API",
+    "version": "1"
+  },
+  "openapi": "3.0.0",
+  "paths": {},
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "api_key": {
+      "deprecated": true,
+      "description": "Member-based auth which provides global access to act as a user on the API. Prefer using a session-based token like the Audio Token or Session Key instead.\n",
+      "in": "header",
+      "name": "X-Api-Key",
+      "type": "apiKey"
+    },
+    "audio_token": {
+      "description": "Session-based auth only valid for operations related to audio playback and performance reporting. Less-sensitive alternative to Session Keys which cannot be used for any member or billing related API calls.\n",
+      "in": "header",
+      "name": "X-Audio-Token",
+      "type": "apiKey"
+    },
+    "session_key": {
+      "description": "Unique bearer token for identifying a specific member session, provides full API access in all auth contexts.\n",
+      "in": "header",
+      "name": "X-Session-Key",
+      "type": "apiKey"
+    }
+  }
+}

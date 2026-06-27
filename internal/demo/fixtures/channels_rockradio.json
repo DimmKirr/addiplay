@@ -1,0 +1,12 @@
+[
+  {"id": 101, "key": "classicrock", "name": "Classic Rock", "description": "Hits from the 60s, 70s and 80s", "asset_url": ""},
+  {"id": 102, "key": "80s_rock", "name": "80s Rock", "description": "Big hair, big riffs", "asset_url": ""},
+  {"id": 103, "key": "alternative", "name": "Alternative Rock", "description": "From college rock to indie", "asset_url": ""},
+  {"id": 104, "key": "blackmetal", "name": "Black Metal", "description": "Raw, fast, dark", "asset_url": ""},
+  {"id": 105, "key": "bluesrock", "name": "Blues Rock", "description": "Where blues meets rock", "asset_url": ""},
+  {"id": 106, "key": "classichardrock", "name": "Classic Hard Rock", "description": "Hard-rock anthems", "asset_url": ""},
+  {"id": 107, "key": "deathmetal", "name": "Death Metal", "description": "Heavy, technical, brutal", "asset_url": ""},
+  {"id": 108, "key": "doom", "name": "Doom Metal", "description": "Slow, heavy, doom-laden riffs", "asset_url": ""},
+  {"id": 109, "key": "grunge", "name": "Grunge", "description": "Seattle and its descendants", "asset_url": ""},
+  {"id": 110, "key": "indie", "name": "Indie Rock", "description": "Independent rock from around the world", "asset_url": ""}
+]

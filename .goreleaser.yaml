@@ -1,0 +1,115 @@
+version: 2
+
+project_name: addiplay
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: addiplay
+    main: .
+    binary: addiplay
+    env:
+      - CGO_ENABLED=0
+    goos:   [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "{{ .ProjectName }}-checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: dimmkirr
+    name: addiplay
+  draft: true
+  replace_existing_draft: true
+  make_latest: false
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^chore'
+      - '^test'
+      - '^docs'
+      - '^ci'
+      - 'Merge pull request'
+      - 'Merge branch'
+
+# Auto-publish a Homebrew Cask to https://github.com/dimmkirr/homebrew-tap on
+# every release. Modelled after devcell-sh/devcell's setup
+# (https://github.com/devcell-sh/devcell/blob/main/.goreleaser.yaml).
+#
+# Two casks per release:
+#   - `addiplay`               — always points at the latest version
+#   - `addiplay@<version>`     — pinned cask for users who want a specific tag
+#
+# Requires a PAT with write access to dimmkirr/homebrew-tap, exposed to the
+# goreleaser job as HOMEBREW_TAP_GITHUB_TOKEN (the default GITHUB_TOKEN
+# scoped to this repo can't push to a sibling repo).
+homebrew_casks:
+  - name: addiplay
+    repository:
+      owner: dimmkirr
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    url:
+      template: "https://github.com/dimmkirr/addiplay/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@kireev.co
+    homepage: "https://github.com/dimmkirr/addiplay"
+    description: "Terminal player for AudioAddict networks (DI.fm, RockRadio, JazzRadio, …)"
+    # mpv is the runtime dependency for actual audio playback.
+    dependencies:
+      - formula: mpv
+    binaries: ["addiplay"]
+    # Wipe app config when the cask is uninstalled.
+    zap:
+      trash:
+        - "~/Library/Application Support/addiplay"
+        - "~/.config/addiplay"
+
+  - name: "addiplay@{{ .Version }}"
+    repository:
+      owner: dimmkirr
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    url:
+      template: "https://github.com/dimmkirr/addiplay/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@kireev.co
+    homepage: "https://github.com/dimmkirr/addiplay"
+    description: "Terminal player for AudioAddict networks (DI.fm, RockRadio, JazzRadio, …) — pinned to {{ .Version }}"
+    dependencies:
+      - formula: mpv
+    binaries: ["addiplay"]
