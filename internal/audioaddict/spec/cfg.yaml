@@ -1,0 +1,21 @@
+# oapi-codegen configuration — `task schema:gen` or `go generate ./...` uses
+# it to regenerate types.gen.go from openapi.v3.json (auto-converted from
+# the upstream Swagger 2.0 openapi.json via swagger2openapi).
+#
+# We only generate model types. The actual HTTP client + auth flow lives in
+# internal/audioaddict/audioaddict.go because:
+#   - AudioAddict's spec omits the routes we care most about (authenticate,
+#     currently_playing, track_history)
+#   - We want one place that controls retry / error mapping / listen_key
+#     handling, not two
+#
+# We strip the spec's `paths` block before codegen because AudioAddict's
+# spec has several path/parameter mismatches that block validation —
+# they're irrelevant for type-only generation. skip-prune keeps the
+# schemas (which are otherwise unreferenced once paths are stripped).
+package: spec
+output: types.gen.go
+generate:
+  models: true
+output-options:
+  skip-prune: true

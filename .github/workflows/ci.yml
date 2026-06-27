@@ -1,0 +1,66 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags:     ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - run: go build ./...
+      - run: go test ./...
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  integration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache: true }
+      - run: sudo apt-get update && sudo apt-get install -y mpv
+      - run: go test -tags=integration ./...
+        env:
+          AA_INTEGRATION_EMAIL: ${{ secrets.AA_INTEGRATION_EMAIL }}
+          AA_INTEGRATION_PASSWORD: ${{ secrets.AA_INTEGRATION_PASSWORD }}
+
+  # Cuts a GitHub release + publishes the Homebrew formula to
+  # dimmkirr/homebrew-tap. Fires on tag push (v*); no-op on regular pushes.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [build-test-lint]
+    permissions:
+      contents: write   # create the GitHub release + upload artefacts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # goreleaser needs the full history for changelogs
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache: true }
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          # GITHUB_TOKEN is auto-provided and covers the GitHub release.
+          # HOMEBREW_TAP_GITHUB_TOKEN must be a PAT with `contents: write`
+          # on dimmkirr/homebrew-tap (the default GITHUB_TOKEN can't
+          # push to a different repo). Set it in the repo's Actions
+          # secrets before tagging a release.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

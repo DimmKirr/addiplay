@@ -1,0 +1,10 @@
+[
+  {"id": 201, "key": "bebop", "name": "Bebop", "description": "Be-bop and hard bop classics", "asset_url": ""},
+  {"id": 202, "key": "cooljazz", "name": "Cool Jazz", "description": "Smooth, mellow West Coast jazz", "asset_url": ""},
+  {"id": 203, "key": "fusion", "name": "Jazz Fusion", "description": "Where jazz meets rock and funk", "asset_url": ""},
+  {"id": 204, "key": "smoothjazz", "name": "Smooth Jazz", "description": "Easy listening jazz", "asset_url": ""},
+  {"id": 205, "key": "vocaljazz", "name": "Vocal Jazz", "description": "The finest jazz vocalists", "asset_url": ""},
+  {"id": 206, "key": "trumpet", "name": "Trumpet Jazz", "description": "Miles, Dizzy, Clifford and more", "asset_url": ""},
+  {"id": 207, "key": "guitar", "name": "Guitar Jazz", "description": "Wes, Pat Metheny and the greats", "asset_url": ""},
+  {"id": 208, "key": "saxophone", "name": "Saxophone Jazz", "description": "Coltrane, Bird, Sonny Rollins", "asset_url": ""}
+]

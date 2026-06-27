@@ -1,0 +1,12 @@
+[
+  {"id": 1, "key": "classiceurodance", "name": "Classic EuroDance", "description": "Eurodance from the 90s and early 2000s", "asset_url": ""},
+  {"id": 2, "key": "vocaltrance", "name": "Vocal Trance", "description": "Female and male vocals over uplifting trance beats", "asset_url": ""},
+  {"id": 3, "key": "chillout", "name": "Chillout", "description": "Mellow downtempo electronica", "asset_url": ""},
+  {"id": 4, "key": "deephouse", "name": "Deep House", "description": "Deep, soulful house grooves", "asset_url": ""},
+  {"id": 5, "key": "drumandbass", "name": "Drum and Bass", "description": "Heavy basslines, fast breakbeats", "asset_url": ""},
+  {"id": 6, "key": "ambient", "name": "Ambient", "description": "Atmospheric soundscapes", "asset_url": ""},
+  {"id": 7, "key": "psytrance", "name": "Psytrance", "description": "Psychedelic trance from around the world", "asset_url": ""},
+  {"id": 8, "key": "techno", "name": "Techno", "description": "Detroit, Berlin and beyond", "asset_url": ""},
+  {"id": 9, "key": "progressive", "name": "Progressive", "description": "Progressive house and trance", "asset_url": ""},
+  {"id": 10, "key": "minimal", "name": "Minimal", "description": "Stripped-back techno", "asset_url": ""}
+]

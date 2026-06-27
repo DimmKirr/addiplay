@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">
+  <title>ADDIPLAY — Main screen (8-line cards + Now Playing column)</title>
+  <desc>Wireframe: 8-line channel cards in a left panel + always-visible Now Playing column on the right (mirrors play.svg). Selected card differs by accent border + left strip + tint.</desc>
+
+  <defs>
+    <linearGradient id="thumbBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a3a7a"/>
+      <stop offset="100%" stop-color="#288cfb"/>
+    </linearGradient>
+    <linearGradient id="thumbPurple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5a2a7a"/>
+      <stop offset="100%" stop-color="#a050d0"/>
+    </linearGradient>
+    <linearGradient id="thumbTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0e3d42"/>
+      <stop offset="100%" stop-color="#3ac6a1"/>
+    </linearGradient>
+    <linearGradient id="thumbGrain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.20"/>
+    </linearGradient>
+    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a3a7a"/>
+      <stop offset="50%" stop-color="#288cfb"/>
+      <stop offset="100%" stop-color="#0a1530"/>
+    </linearGradient>
+    <linearGradient id="coverGrain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1100" height="720" fill="#f7f8fa"/>
+
+  <text x="28" y="38" font-size="14" fill="#6b7280" font-weight="500" letter-spacing="0.08em">MAIN · STATION SELECTION (CARDS + NOW PLAYING)</text>
+  <text x="28" y="58" font-size="11" fill="#9aa3b2">Left: uniform 8-line channel cards. Right: persistent Now Playing column (same as play.svg) — reflects what the SELECTED card would play.</text>
+
+  <g transform="translate(28,80)">
+    <rect x="2" y="3" width="1044" height="592" rx="10" fill="#000" opacity="0.07"/>
+    <rect x="0" y="0" width="1044" height="28" rx="10" fill="#1f2632"/>
+    <rect x="0" y="14" width="1044" height="14" fill="#1f2632"/>
+    <circle cx="16" cy="14" r="6" fill="#ff5f57"/>
+    <circle cx="36" cy="14" r="6" fill="#febc2e"/>
+    <circle cx="56" cy="14" r="6" fill="#28c840"/>
+    <text x="522" y="18" text-anchor="middle" font-size="10" fill="#6b7280">addiplay · classic trance</text>
+
+    <rect x="0" y="28" width="1044" height="564" fill="#151b25"/>
+
+    <g transform="translate(12,40)" font-size="14" fill="#e6e6e6" xml:space="preserve">
+
+      <!-- HEADER -->
+      <rect x="0" y="-13" width="42" height="18" fill="#288cfb"/>
+      <text x="4" y="0" fill="#151b25" font-weight="700">ADDIPLAY</text>
+      <text x="51" y="0" fill="#e6e6e6" font-weight="700">DI.FM</text>
+      <text x="110" y="0" fill="#888">·</text>
+      <text x="125" y="0" fill="#288cfb" font-weight="700" text-decoration="underline">All</text>
+      <text x="156" y="0" fill="#888">Favorites</text>
+      <text x="1015" y="0" text-anchor="end" fill="#288cfb">▶ playing  ·  Classic Trance</text>
+
+      <!-- ========================================================== -->
+      <!-- LEFT: 8-line channel cards (panel ~640px wide)             -->
+      <!-- ========================================================== -->
+      <g transform="translate(0,18)">
+        <text x="0" y="0" fill="#288cfb">╭─ Channels ────────────────────────────────────────────────────────────────╮</text>
+
+        <!-- side verticals -->
+        <g fill="#288cfb">
+          <text x="0" y="20">│</text>   <text x="654" y="20">│</text>
+          <text x="0" y="40">│</text>   <text x="654" y="40">│</text>
+          <text x="0" y="60">│</text>   <text x="654" y="60">│</text>
+          <text x="0" y="80">│</text>   <text x="654" y="80">│</text>
+          <text x="0" y="100">│</text>  <text x="654" y="100">│</text>
+          <text x="0" y="120">│</text>  <text x="654" y="120">│</text>
+          <text x="0" y="140">│</text>  <text x="654" y="140">│</text>
+          <text x="0" y="160">│</text>  <text x="654" y="160">│</text>
+          <text x="0" y="180">│</text>  <text x="654" y="180">│</text>
+          <text x="0" y="200">│</text>  <text x="654" y="200">│</text>
+          <text x="0" y="220">│</text>  <text x="654" y="220">│</text>
+          <text x="0" y="240">│</text>  <text x="654" y="240">│</text>
+          <text x="0" y="260">│</text>  <text x="654" y="260">│</text>
+          <text x="0" y="280">│</text>  <text x="654" y="280">│</text>
+          <text x="0" y="300">│</text>  <text x="654" y="300">│</text>
+          <text x="0" y="320">│</text>  <text x="654" y="320">│</text>
+          <text x="0" y="340">│</text>  <text x="654" y="340">│</text>
+          <text x="0" y="360">│</text>  <text x="654" y="360">│</text>
+        </g>
+
+        <!-- ============================================ -->
+        <!-- CARD 1 — SELECTED (Classic Trance), 8 lines  -->
+        <!-- ============================================ -->
+        <rect x="10" y="8"  width="640" height="116" fill="#212737" stroke="#288cfb" stroke-width="1.5" rx="3"/>
+        <rect x="10" y="8"  width="4"   height="116" fill="#288cfb"/>
+
+        <rect x="22" y="18" width="96"  height="96"  fill="url(#thumbBlue)"/>
+        <rect x="22" y="18" width="96"  height="96"  fill="url(#thumbGrain)"/>
+
+        <text x="132" y="28" fill="#e6e6e6" font-weight="700">▸ Classic Trance</text>
+        <text x="296" y="28" fill="#288cfb">★</text>
+        <text x="640" y="28" text-anchor="end" fill="#288cfb" font-weight="700">▶ playing</text>
+
+        <text x="132" y="44" fill="#888">the classics that built the genre</text>
+
+        <text x="132" y="60" fill="#3a4253">──────────────────────────────────────────────</text>
+
+        <text x="132" y="76" fill="#888">♪ now playing</text>
+        <text x="132" y="92" fill="#e6e6e6" font-weight="700">FilterFunk</text>
+        <text x="218" y="92" fill="#888"> — S.O.S. (Message In A Bottle)</text>
+
+        <text x="132" y="108" fill="#666">listeners</text>
+        <text x="214" y="108" fill="#e6e6e6">12.4k</text>
+        <text x="272" y="108" fill="#666">·  premium_high · 256k aac</text>
+
+        <text x="132" y="124" fill="#288cfb">↵ enter play   space pause   f favorite</text>
+
+        <!-- CARD 2 — Vocal Trance -->
+        <rect x="10" y="132" width="640" height="116" fill="#1a212e" stroke="#2a3344" stroke-width="1" rx="3"/>
+        <rect x="22" y="142" width="96"  height="96"  fill="url(#thumbPurple)"/>
+        <rect x="22" y="142" width="96"  height="96"  fill="url(#thumbGrain)"/>
+
+        <text x="132" y="152" fill="#e6e6e6" font-weight="700">  Vocal Trance</text>
+        <text x="640" y="152" text-anchor="end" fill="#666">○ idle</text>
+
+        <text x="132" y="168" fill="#888">female vocals, soaring melodies</text>
+
+        <text x="132" y="184" fill="#3a4253">──────────────────────────────────────────────</text>
+
+        <text x="132" y="200" fill="#888">♪ now playing</text>
+        <text x="132" y="216" fill="#e6e6e6">Above &amp; Beyond</text>
+        <text x="244" y="216" fill="#888"> — Counting Down The Days</text>
+
+        <text x="132" y="232" fill="#666">listeners</text>
+        <text x="214" y="232" fill="#e6e6e6">8.1k</text>
+        <text x="272" y="232" fill="#666">·  premium_high · 256k aac</text>
+
+        <text x="132" y="248" fill="#444"> </text>
+
+        <!-- CARD 3 — Progressive (favorited) -->
+        <rect x="10" y="256" width="640" height="116" fill="#1a212e" stroke="#2a3344" stroke-width="1" rx="3"/>
+        <rect x="22" y="266" width="96"  height="96"  fill="url(#thumbTeal)"/>
+        <rect x="22" y="266" width="96"  height="96"  fill="url(#thumbGrain)"/>
+
+        <text x="132" y="276" fill="#e6e6e6" font-weight="700">  Progressive</text>
+        <text x="290" y="276" fill="#f9dc00">★</text>
+        <text x="640" y="276" text-anchor="end" fill="#f9dc00">★ favorite</text>
+
+        <text x="132" y="292" fill="#888">deep, hypnotic, sun-drenched grooves</text>
+
+        <text x="132" y="308" fill="#3a4253">──────────────────────────────────────────────</text>
+
+        <text x="132" y="324" fill="#888">♪ now playing</text>
+        <text x="132" y="340" fill="#e6e6e6">Eric Prydz</text>
+        <text x="216" y="340" fill="#888"> — Opus (Four Tet Remix)</text>
+
+        <text x="132" y="356" fill="#666">listeners</text>
+        <text x="214" y="356" fill="#e6e6e6">6.7k</text>
+        <text x="272" y="356" fill="#666">·  premium_high · 256k aac</text>
+
+        <text x="132" y="372" fill="#666">  ⋮ 116 more — PgDn pages, / searches</text>
+
+        <!-- box bottom -->
+        <text x="0" y="380" fill="#288cfb">╰───────────────────────────────────────────────────────────────────────────╯</text>
+      </g>
+
+      <!-- ========================================================== -->
+      <!-- RIGHT: Now Playing column (mirrors play.svg)               -->
+      <!-- ========================================================== -->
+      <g transform="translate(674,18)">
+        <text x="0" y="0" fill="#288cfb">╭─ Now Playing ───────────────────────────╮</text>
+
+        <!-- album art -->
+        <rect x="14" y="14" width="318" height="220" fill="url(#cover)"/>
+        <rect x="14" y="14" width="318" height="220" fill="url(#coverGrain)"/>
+        <text x="324" y="226" text-anchor="end" font-size="10" fill="#e6e6e6" opacity="0.7">album cover · 217×217</text>
+
+        <text x="14" y="262" fill="#e6e6e6" font-weight="700">Classic Trance</text>
+        <text x="14" y="280" fill="#888">the classics that built the genre</text>
+
+        <text x="14" y="312" fill="#e6e6e6" font-weight="700">FilterFunk</text>
+        <text x="22" y="332" fill="#888">S.O.S. (Message In A Bottle)</text>
+
+        <!-- side verticals -->
+        <g fill="#288cfb">
+          <text x="0" y="20">│</text>   <text x="346" y="20">│</text>
+          <text x="0" y="40">│</text>   <text x="346" y="40">│</text>
+          <text x="0" y="60">│</text>   <text x="346" y="60">│</text>
+          <text x="0" y="80">│</text>   <text x="346" y="80">│</text>
+          <text x="0" y="100">│</text>  <text x="346" y="100">│</text>
+          <text x="0" y="120">│</text>  <text x="346" y="120">│</text>
+          <text x="0" y="140">│</text>  <text x="346" y="140">│</text>
+          <text x="0" y="160">│</text>  <text x="346" y="160">│</text>
+          <text x="0" y="180">│</text>  <text x="346" y="180">│</text>
+          <text x="0" y="200">│</text>  <text x="346" y="200">│</text>
+          <text x="0" y="220">│</text>  <text x="346" y="220">│</text>
+          <text x="0" y="240">│</text>  <text x="346" y="240">│</text>
+          <text x="0" y="260">│</text>  <text x="346" y="260">│</text>
+          <text x="0" y="280">│</text>  <text x="346" y="280">│</text>
+          <text x="0" y="300">│</text>  <text x="346" y="300">│</text>
+          <text x="0" y="320">│</text>  <text x="346" y="320">│</text>
+          <text x="0" y="340">│</text>  <text x="346" y="340">│</text>
+          <text x="0" y="360">│</text>  <text x="346" y="360">│</text>
+        </g>
+
+        <text x="0" y="380" fill="#288cfb">╰─────────────────────────────────────────╯</text>
+      </g>
+
+      <!-- STATUS BAR -->
+      <rect x="0" y="414" width="1020" height="20" fill="#212737"/>
+      <text x="8"    y="428" fill="#e6e6e6">▶  playing</text>
+      <text x="180"  y="428" fill="#888">network: di.fm   ·   channel: classictrance   ·   premium_high 256k</text>
+      <text x="1012" y="428" text-anchor="end" fill="#e6e6e6">vol 60% ▮▮▮▮▮▮▯▯▯▯</text>
+
+      <!-- KEY HINTS -->
+      <text x="0" y="452" fill="#888">↑↓ select   enter play   space pause   n network   / search   f favorite   PgUp/PgDn page   q quit</text>
+    </g>
+  </g>
+
+  <text x="28" y="700" font-size="10" fill="#9aa3b2">Persistent Now Playing column requires ≥100 cols. Below that, the column collapses and the channel list takes the full width (see code: minWidthForArt).</text>
+</svg>

@@ -1,0 +1,7 @@
+[
+  {"id": 601, "key": "salsa", "name": "Salsa", "description": "Hot salsa from across Latin America", "asset_url": ""},
+  {"id": 602, "key": "bachata", "name": "Bachata", "description": "Dominican romance", "asset_url": ""},
+  {"id": 603, "key": "reggaeton", "name": "Reggaeton", "description": "The biggest reggaeton hits", "asset_url": ""},
+  {"id": 604, "key": "latinjazz", "name": "Latin Jazz", "description": "Afro-Cuban jazz traditions", "asset_url": ""},
+  {"id": 605, "key": "merengue", "name": "Merengue", "description": "Caribbean dance classics", "asset_url": ""}
+]
