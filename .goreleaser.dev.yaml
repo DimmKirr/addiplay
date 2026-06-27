@@ -1,5 +1,13 @@
 version: 2
 
+# Dev goreleaser config — invoked by .github/workflows/build.dev.yml on
+# every push to main / feature branches. Cuts a draft prerelease at
+# the rolling `v0.0.0` tag and publishes the `addiplay-dev` Homebrew
+# Cask so testers can `brew install dimmkirr/tap/addiplay-dev` to pick
+# up the latest dev binary without touching the stable `addiplay` cask.
+#
+# Mirrors devcell-sh/devcell's .goreleaser.dev.yaml layout.
+
 project_name: addiplay
 
 before:
@@ -12,18 +20,15 @@ builds:
     binary: addiplay
     env:
       - CGO_ENABLED=0
-    goos:   [linux, darwin, windows]
+    goos:   [linux, darwin]
     goarch: [amd64, arm64]
     ldflags:
-      - -s -w -X main.Version={{.Version}}
+      - -s -w -X main.Version={{.Version}}+dev.{{.Env.SHORT_SHA}}
 
 archives:
   - id: default
     formats: [tar.gz]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    format_overrides:
-      - goos: windows
-        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}-dev_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
@@ -38,6 +43,7 @@ release:
   draft: true
   replace_existing_draft: true
   make_latest: false
+  prerelease: true
 
 changelog:
   use: github
@@ -60,19 +66,10 @@ changelog:
       - 'Merge pull request'
       - 'Merge branch'
 
-# Auto-publish a Homebrew Cask to https://github.com/dimmkirr/homebrew-tap on
-# every release. Modelled after devcell-sh/devcell's setup
-# (https://github.com/devcell-sh/devcell/blob/main/.goreleaser.yaml).
-#
-# Two casks per release:
-#   - `addiplay`               — always points at the latest version
-#   - `addiplay@<version>`     — pinned cask for users who want a specific tag
-#
-# Requires a PAT with write access to dimmkirr/homebrew-tap, exposed to the
-# goreleaser job as HOMEBREW_TAP_GITHUB_TOKEN (the default GITHUB_TOKEN
-# scoped to this repo can't push to a sibling repo).
+# Publishes the `addiplay-dev` cask (and a pinned variant). Conflicts
+# with the stable `addiplay` cask so users opt in to one channel only.
 homebrew_casks:
-  - name: addiplay
+  - name: addiplay-dev
     repository:
       owner: dimmkirr
       name: homebrew-tap
@@ -85,12 +82,11 @@ homebrew_casks:
       name: Dmitry Kireev
       email: dmitry@kireev.co
     homepage: "https://github.com/dimmkirr/addiplay"
-    description: "Terminal player for AudioAddict networks (DI.fm, RockRadio, JazzRadio, …)"
-    # mpv is the runtime dependency for actual audio playback.
+    description: "Terminal player for AudioAddict networks — dev build (rolling)"
     dependencies:
       - formula: mpv
     conflicts:
-      - cask: addiplay-dev
+      - cask: addiplay
     binaries: ["addiplay"]
     # Wipe app config when the cask is uninstalled.
     zap:
@@ -98,7 +94,7 @@ homebrew_casks:
         - "~/Library/Application Support/addiplay"
         - "~/.config/addiplay"
 
-  - name: "addiplay@{{ .Version }}"
+  - name: "addiplay-dev@{{ .Version }}"
     repository:
       owner: dimmkirr
       name: homebrew-tap
@@ -111,9 +107,9 @@ homebrew_casks:
       name: Dmitry Kireev
       email: dmitry@kireev.co
     homepage: "https://github.com/dimmkirr/addiplay"
-    description: "Terminal player for AudioAddict networks (DI.fm, RockRadio, JazzRadio, …) — pinned to {{ .Version }}"
+    description: "Terminal player for AudioAddict networks — pinned dev build {{ .Version }}"
     dependencies:
       - formula: mpv
     conflicts:
-      - cask: addiplay-dev
+      - cask: addiplay
     binaries: ["addiplay"]
