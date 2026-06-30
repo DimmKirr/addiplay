@@ -1,0 +1,115 @@
+version: 2
+
+# Dev goreleaser config — invoked by .github/workflows/build.dev.yml on
+# every push to main / feature branches. Cuts a draft prerelease at
+# the rolling `v0.0.0` tag and publishes the `addiplay-dev` Homebrew
+# Cask so testers can `brew install dimmkirr/tap/addiplay-dev` to pick
+# up the latest dev binary without touching the stable `addiplay` cask.
+#
+# Mirrors devcell-sh/devcell's .goreleaser.dev.yaml layout.
+
+project_name: addiplay
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: addiplay
+    main: .
+    binary: addiplay
+    env:
+      - CGO_ENABLED=0
+    goos:   [linux, darwin]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X github.com/dimmkirr/addiplay/cmd.Version={{.Version}}+dev.{{.Env.SHORT_SHA}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}-dev_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}-checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+release:
+  github:
+    owner: dimmkirr
+    name: addiplay
+  draft: true
+  replace_existing_draft: true
+  make_latest: false
+  prerelease: true
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^chore'
+      - '^test'
+      - '^docs'
+      - '^ci'
+      - 'Merge pull request'
+      - 'Merge branch'
+
+# Publishes the `addiplay-dev` cask (and a pinned variant). Conflicts
+# with the stable `addiplay` cask so users opt in to one channel only.
+homebrew_casks:
+  - name: addiplay-dev
+    repository:
+      owner: dimmkirr
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    url:
+      template: "https://github.com/dimmkirr/addiplay/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@kireev.co
+    homepage: "https://github.com/dimmkirr/addiplay"
+    description: "Terminal player for AudioAddict networks — dev build (rolling)"
+    dependencies:
+      - formula: mpv
+    conflicts:
+      - cask: addiplay
+    binaries: ["addiplay"]
+    # Wipe app config when the cask is uninstalled.
+    zap:
+      trash:
+        - "~/Library/Application Support/addiplay"
+        - "~/.config/addiplay"
+
+  - name: "addiplay-dev@{{ .Version }}"
+    repository:
+      owner: dimmkirr
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    url:
+      template: "https://github.com/dimmkirr/addiplay/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    commit_author:
+      name: Dmitry Kireev
+      email: dmitry@kireev.co
+    homepage: "https://github.com/dimmkirr/addiplay"
+    description: "Terminal player for AudioAddict networks — pinned dev build {{ .Version }}"
+    dependencies:
+      - formula: mpv
+    conflicts:
+      - cask: addiplay
+    binaries: ["addiplay"]

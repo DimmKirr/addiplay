@@ -1,0 +1,98 @@
+name: build.dev
+
+# Dev build pipeline — mirrors devcell-sh/devcell's pattern. Runs on
+# every push to main and feature branches, plus manual dispatch. Cuts
+# a draft GitHub prerelease tagged v0.0.0 (force-moved each run) and
+# pushes an `addiplay-dev` Homebrew Cask to dimmkirr/homebrew-tap.
+#
+# Maintainers / testers can `brew install dimmkirr/tap/addiplay-dev` to
+# pick up the latest dev binary. The dev cask conflicts with the
+# stable `addiplay` cask so users can install one OR the other, not both.
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  cell-build:
+    name: addiplay dev build
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: v0.0.0
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set SHORT_SHA
+        run: echo "SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-8)" >> $GITHUB_ENV
+
+      - name: Move dev tag to current commit
+        run: |
+          git config --global user.email "dmitry@kireev.co"
+          git config --global user.name "Dmitry Kireev"
+          git tag -d "${RELEASE_VERSION}" 2>/dev/null || echo "no local tag to delete"
+          git push origin ":refs/tags/${RELEASE_VERSION}" 2>/dev/null || echo "no remote tag to delete"
+          git tag -a "${RELEASE_VERSION}" -m "Development build ${SHORT_SHA}"
+          git push origin "${RELEASE_VERSION}"
+
+      - name: Run GoReleaser (dev)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean -f .goreleaser.dev.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          SHORT_SHA: ${{ env.SHORT_SHA }}
+
+      - name: Mark release as published prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${RELEASE_VERSION}" --draft=false --latest=false --prerelease
+
+  e2e-install:
+    name: addiplay-dev brew install (${{ matrix.arch }})
+    needs: cell-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Download addiplay dev binary
+        run: |
+          TARBALL="addiplay_0.0.0-dev_linux_${{ matrix.arch }}.tar.gz"
+          URL="https://github.com/dimmkirr/addiplay/releases/download/v0.0.0/${TARBALL}"
+          echo "Downloading: ${URL}"
+          curl -fsSL -o "${TARBALL}" "${URL}"
+          tar xzf "${TARBALL}"
+          chmod +x addiplay
+          sudo mv addiplay /usr/local/bin/addiplay
+
+      - name: Verify binary
+        run: |
+          addiplay --version
+          addiplay --help | head -20
+          echo "--- addiplay dev binary OK ---"

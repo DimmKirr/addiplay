@@ -1,0 +1,9 @@
+[
+  {"id": 301, "key": "baroque", "name": "Baroque", "description": "Bach, Handel, Vivaldi", "asset_url": ""},
+  {"id": 302, "key": "symphony", "name": "Symphony", "description": "The great symphonic works", "asset_url": ""},
+  {"id": 303, "key": "piano", "name": "Solo Piano", "description": "From Chopin to Rachmaninoff", "asset_url": ""},
+  {"id": 304, "key": "opera", "name": "Opera", "description": "Italian, German, French opera", "asset_url": ""},
+  {"id": 305, "key": "chamber", "name": "Chamber Music", "description": "Strings, woodwinds, intimate works", "asset_url": ""},
+  {"id": 306, "key": "choral", "name": "Choral", "description": "Sacred and secular choral", "asset_url": ""},
+  {"id": 307, "key": "modern", "name": "20th Century", "description": "Stravinsky, Bartok, Shostakovich", "asset_url": ""}
+]

@@ -1,0 +1,381 @@
+[15:26:39.886] addiplay: === addiplay debug log @ 2026-06-30T15:26:39Z — version dev ===
+[15:26:39.886] addiplay: === mpv output goes to /Users/dmitry/dev/dimmkirr/addiplay/debug.log (--log-file) ===
+[15:26:39.886] addiplay: === addiplay events go to /Users/dmitry/dev/dimmkirr/addiplay/debug.log.addiplay (this file) ===
+[15:26:39.886] [tui] runTUI starting (load_err=<nil> email_set=true listen_key_len=24 session_key_len=32 premium=true)
+[15:26:39.887] [ui] NewModel ready (email=dmitry@kireev.co lastNet=rockradio lastCh=melodicdeathmetal focus=0)
+[15:26:39.887] [tui] p.Run() entering
+[15:26:39.887] [ui] Init dispatching initPlayer + loadChannels(net=rockradio)
+[15:26:39.997] [ui] channelsLoaded count=48 net=rockradio
+[15:26:39.997] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:39.997] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:39.997] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:40.125] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/3c25c1488f441ab37b72e03e23e96e4b.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=5479 magic=JPEG id=245
+[15:26:40.125] [fanart] EncodePlaceholder: id=245 cols=16 rows=8 imgBytes=12880 transmitLen=17309 blockLen=1183
+[15:26:40.125] [ui] channelThumb OK key=ska bytes=18492
+[15:26:40.129] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/3/c/c/7/c/3/3cc7c38a7419dd488d6c7eb6f610703e.png?quality=75&size=320x320 content-type=image/png bytes=96220 magic=PNG id=244
+[15:26:40.129] [fanart] EncodePlaceholder: id=244 cols=16 rows=8 imgBytes=114966 transmitLen=154081 blockLen=1183
+[15:26:40.129] [ui] channelThumb OK key=indierock bytes=155264
+[15:26:40.191] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/e37154559401e71c2bccc6125c92edf6.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=15856 magic=JPEG id=247
+[15:26:40.192] [fanart] EncodePlaceholder: id=247 cols=16 rows=8 imgBytes=180906 transmitLen=242421 blockLen=1183
+[15:26:40.192] [ui] channelThumb OK key=beatlestribute bytes=243604
+[15:26:40.194] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/9b6505177b90bf5db0c1b6c325f0053a.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=12640 magic=JPEG id=246
+[15:26:40.194] [fanart] EncodePlaceholder: id=246 cols=16 rows=8 imgBytes=125764 transmitLen=168541 blockLen=1183
+[15:26:40.195] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/3/1/8/6/4/a/31864a278dfb8bb393b074a0fd0dacda.png?quality=75&size=320x320 content-type=image/png bytes=97931 magic=PNG id=248
+[15:26:40.195] [fanart] EncodePlaceholder: id=248 cols=16 rows=8 imgBytes=114004 transmitLen=152801 blockLen=1183
+[15:26:40.196] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/2/5/0/0/3/7/250037906edac7b4fedec78add206977.png?quality=75&size=320x320 content-type=image/png bytes=145513 magic=PNG id=243
+[15:26:40.197] [fanart] EncodePlaceholder: id=243 cols=16 rows=8 imgBytes=158741 transmitLen=212729 blockLen=1183
+[15:26:40.197] [ui] channelThumb OK key=poppunk bytes=169724
+[15:26:40.202] [ui] channelThumb OK key=metal bytes=153984
+[15:26:40.207] [ui] channelThumb OK key=classicrock bytes=213912
+[15:26:40.936] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:40.937] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:40.937] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:40.937] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.117] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.117] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.117] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.117] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.180] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/9/e/7/5/3/a/9e753a8cfff9e80ecd31e31b2747a3ec.png?quality=75&size=320x320 content-type=image/png bytes=129026 magic=PNG id=249
+[15:26:41.180] [fanart] EncodePlaceholder: id=249 cols=16 rows=8 imgBytes=150149 transmitLen=201213 blockLen=1183
+[15:26:41.180] [ui] channelThumb OK key=heavymetal bytes=202396
+[15:26:41.256] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.256] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.256] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.256] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.325] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/c/9/2/c/9/3/c92c93a7b0938673412d911fd8396899.png?quality=75&size=320x320 content-type=image/png bytes=132027 magic=PNG id=250
+[15:26:41.325] [fanart] EncodePlaceholder: id=250 cols=16 rows=8 imgBytes=162559 transmitLen=217841 blockLen=1183
+[15:26:41.326] [ui] channelThumb OK key=hardrock bytes=219024
+[15:26:41.410] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.410] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.410] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.410] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.452] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/fe31a30405b295094ec1fa57c2b87f9b.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=15889 magic=JPEG id=251
+[15:26:41.453] [fanart] EncodePlaceholder: id=251 cols=16 rows=8 imgBytes=73108 transmitLen=97993 blockLen=1183
+[15:26:41.453] [ui] channelThumb OK key=harderrock bytes=99176
+[15:26:41.607] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.607] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.607] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.608] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.669] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/2/4/5/b/1/1/245b111473793e702b04c7e75510af3c.png?quality=75&size=320x320 content-type=image/png bytes=106113 magic=PNG id=252
+[15:26:41.669] [fanart] EncodePlaceholder: id=252 cols=16 rows=8 imgBytes=128542 transmitLen=172265 blockLen=1183
+[15:26:41.669] [ui] channelThumb OK key=softrock bytes=173448
+[15:26:41.773] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.773] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.773] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.773] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:41.840] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/9/7/8/5/9/9/97859913a2d70e20fb33b49629650028.png?quality=75&size=320x320 content-type=image/png bytes=139256 magic=PNG id=253
+[15:26:41.840] [fanart] EncodePlaceholder: id=253 cols=16 rows=8 imgBytes=154394 transmitLen=206913 blockLen=1183
+[15:26:41.840] [ui] channelThumb OK key=poprock bytes=208096
+[15:26:41.967] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:41.967] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:41.967] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:41.967] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:42.144] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:42.145] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:42.149] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:42.149] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:42.253] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/2/4/b/d/c/b/24bdcba23d478a4ee28190ffc9c7eb43.png?quality=75&size=320x320 content-type=image/png bytes=138029 magic=PNG id=254
+[15:26:42.254] [fanart] EncodePlaceholder: id=254 cols=16 rows=8 imgBytes=121837 transmitLen=163285 blockLen=1183
+[15:26:42.254] [ui] channelThumb OK key=80srock bytes=164468
+[15:26:42.314] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:42.314] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:42.314] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:42.314] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:42.491] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:42.491] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:42.491] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:42.491] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:42.515] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=15988 magic=JPEG id=256
+[15:26:42.515] [fanart] EncodePlaceholder: id=256 cols=16 rows=8 imgBytes=156331 transmitLen=209497 blockLen=1167
+[15:26:42.525] [ui] channelThumb OK key=deathcore bytes=210664
+[15:26:42.661] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:42.661] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:42.661] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:42.661] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:42.688] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/5/a/4/7/2/f/5a472f64645de89c29e5634f8a709024.png?quality=75&size=320x320 content-type=image/png bytes=212571 magic=PNG id=255
+[15:26:42.688] [fanart] EncodePlaceholder: id=255 cols=16 rows=8 imgBytes=180829 transmitLen=242321 blockLen=1183
+[15:26:42.688] [ui] channelThumb OK key=deathmetal bytes=243504
+[15:26:42.769] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/8/7/b/7/5/3/87b753b1c04ac66ed0c2794babf088ae.png?quality=75&size=320x320 content-type=image/png bytes=24011 magic=PNG id=257
+[15:26:42.769] [fanart] EncodePlaceholder: id=257 cols=16 rows=8 imgBytes=20378 transmitLen=27345 blockLen=1167
+[15:26:42.769] [ui] channelThumb OK key=blackmetal bytes=28512
+[15:26:42.829] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:42.829] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:42.829] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:42.829] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:43.019] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:43.019] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:43.019] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:43.019] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:43.070] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/7/3/f/d/6/4/73fd64130e4ac7240bdb0afb8bb1d81f.png?quality=75&size=320x320 content-type=image/png bytes=178408 magic=PNG id=258
+[15:26:43.071] [fanart] EncodePlaceholder: id=258 cols=16 rows=8 imgBytes=146105 transmitLen=195801 blockLen=1167
+[15:26:43.071] [ui] channelThumb OK key=metalcore bytes=196968
+[15:26:43.164] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/9/9/f/d/4/8/99fd48e7969d558fcfed2859860f9840.png?quality=75&size=320x320 content-type=image/png bytes=183707 magic=PNG id=259
+[15:26:43.164] [fanart] EncodePlaceholder: id=259 cols=16 rows=8 imgBytes=153909 transmitLen=206265 blockLen=1167
+[15:26:43.164] [ui] channelThumb OK key=screamoemo bytes=207432
+[15:26:43.426] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/e/1/2/a/9/1/e12a91fbfc630aabac090fbe2b7b2d30.png?quality=75&size=320x320 content-type=image/png bytes=177990 magic=PNG id=260
+[15:26:43.427] [fanart] EncodePlaceholder: id=260 cols=16 rows=8 imgBytes=152509 transmitLen=204381 blockLen=1167
+[15:26:43.427] [ui] channelThumb OK key=modernrock bytes=205548
+[15:26:43.585] [ui] key: type=enter alt=false runes="" str="enter" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:43.951] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:43.951] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:43.951] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:43.951] [ui] refreshFanart: mode=kitty track.ArtURL="" ch.Key="deathcore" ch.AssetURL="//cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg"
+[15:26:43.951] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?size=300x300&quality=75" currentSrc="" hasEscape=false
+[15:26:44.008] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=15617 magic=JPEG id=1
+[15:26:44.008] [fanart] EncodePlaceholder: id=1 cols=30 rows=15 imgBytes=156331 transmitLen=209496 blockLen=3869
+[15:26:44.008] [ui] fanartReady APPLIED url=https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?size=300x300&quality=75 bytes=213365
+[15:26:44.125] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:44.125] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:44.125] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:44.125] [ui] refreshFanart: mode=kitty track.ArtURL="" ch.Key="deathcore" ch.AssetURL="//cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg"
+[15:26:44.125] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?size=300x300&quality=75" currentSrc="https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?size=300x300&quality=75" hasEscape=true
+[15:26:46.128] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:46.128] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:46.128] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:46.142] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:46.380] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:46.380] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:46.380] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:46.400] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:46.985] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:46.986] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:46.986] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:46.986] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:46.986] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:46.986] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:46.986] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.008] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.086] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/9/c/6/b/6/e/9c6b6e8c2fc3f27118d41a5ea3cf1466.png?quality=75&size=320x320 content-type=image/png bytes=135242 magic=PNG id=261
+[15:26:47.086] [fanart] EncodePlaceholder: id=261 cols=16 rows=8 imgBytes=159585 transmitLen=213853 blockLen=1167
+[15:26:47.086] [ui] channelThumb OK key=punkrock bytes=215020
+[15:26:47.086] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.086] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.086] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.096] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.106] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:47.106] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.106] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.106] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.106] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.106] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.106] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.113] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.221] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:47.221] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.221] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.221] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.221] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.221] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.221] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.237] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.377] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:47.377] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.377] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.377] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.377] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.377] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.377] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.390] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.611] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/fa5c1df99cb38b77dc731ea4de645a0a.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=6711 magic=JPEG id=262
+[15:26:47.611] [fanart] EncodePlaceholder: id=262 cols=16 rows=8 imgBytes=40500 transmitLen=54313 blockLen=1167
+[15:26:47.612] [ui] channelThumb OK key=hardcore bytes=55480
+[15:26:47.612] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.612] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.612] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.633] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.635] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/a/f/6/8/3/f/af683fb86d98eb8ebd7c9b7e5f87a984.png?quality=75&size=320x320 content-type=image/png bytes=182538 magic=PNG id=263
+[15:26:47.635] [fanart] EncodePlaceholder: id=263 cols=16 rows=8 imgBytes=154503 transmitLen=207057 blockLen=1167
+[15:26:47.648] [ui] channelThumb OK key=powermetal bytes=208224
+[15:26:47.648] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.648] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.648] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.661] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.671] [ui] key: type=enter alt=false runes="" str="enter" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=0 voteInFlight=false session_key_len=32
+[15:26:47.671] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.671] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.671] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.681] [ui] renderNowPlaying: painting fanartEscape len=213365 (w=36 h=32)
+[15:26:47.870] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.870] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.870] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.870] [ui] refreshFanart: mode=kitty track.ArtURL="" ch.Key="modernrock" ch.AssetURL="//cdn-images.audioaddict.com/1/5/d/b/a/a/15dbaa1f6a26c234d4977f10e9ea8808.png"
+[15:26:47.870] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/e/1/2/a/9/1/e12a91fbfc630aabac090fbe2b7b2d30.png?size=300x300&quality=75" currentSrc="https://cdn-images.audioaddict.com/53ae057206358b12995c3f7583d3ecd8.jpg?size=300x300&quality=75" hasEscape=true
+[15:26:47.870] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.870] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.870] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.888] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/6/2/d/4/5/7/62d45769cff60a825e89b3a0624a4fc3.png?quality=75&size=320x320 content-type=image/png bytes=163221 magic=PNG id=264
+[15:26:47.888] [fanart] EncodePlaceholder: id=264 cols=16 rows=8 imgBytes=136838 transmitLen=183385 blockLen=1167
+[15:26:47.894] [ui] renderNowPlaying: no fanartEscape — using placeholder (w=36 h=32)
+[15:26:47.899] [ui] channelThumb OK key=symphonicmetal bytes=184552
+[15:26:47.899] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.899] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.899] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.914] [ui] renderNowPlaying: no fanartEscape — using placeholder (w=36 h=32)
+[15:26:47.949] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/e/1/2/a/9/1/e12a91fbfc630aabac090fbe2b7b2d30.png?quality=75&size=320x320 content-type=image/png bytes=125048 magic=PNG id=1
+[15:26:47.949] [fanart] EncodePlaceholder: id=1 cols=30 rows=15 imgBytes=152509 transmitLen=204380 blockLen=3869
+[15:26:47.949] [ui] fanartReady APPLIED url=https://cdn-images.audioaddict.com/e/1/2/a/9/1/e12a91fbfc630aabac090fbe2b7b2d30.png?size=300x300&quality=75 bytes=208249
+[15:26:47.949] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:47.949] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:47.949] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:47.961] [ui] renderNowPlaying: painting fanartEscape len=208249 (w=36 h=32)
+[15:26:48.464] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:48.464] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:48.464] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:48.464] [ui] refreshFanart: mode=kitty track.ArtURL="//cdn-images.audioaddict.com/2/4/8/1/6/5/248165601017614ca6a08d86a17dab5a.png" ch.Key="modernrock" ch.AssetURL="//cdn-images.audioaddict.com/1/5/d/b/a/a/15dbaa1f6a26c234d4977f10e9ea8808.png"
+[15:26:48.464] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/2/4/8/1/6/5/248165601017614ca6a08d86a17dab5a.png?size=300x300&quality=75" currentSrc="https://cdn-images.audioaddict.com/e/1/2/a/9/1/e12a91fbfc630aabac090fbe2b7b2d30.png?size=300x300&quality=75" hasEscape=true
+[15:26:48.464] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:48.464] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:48.464] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:48.476] [ui] renderNowPlaying: painting fanartEscape len=208249 (w=36 h=32)
+[15:26:48.754] [2026-06-30T15:26:48.753968Z] [audioaddict] [audioaddict.go:1043] [15:26:48.754] FetchTrack OK network=rockradio trackID=2257759 title="Saviors Never Cry" artist="Harem Scarem" up=117 down=26 who_up_size=5090 who_up_seed=1782829320 who_up_bits=160[15:26:48.754] 
+[15:26:48.754] [ui] trackVoteLoadedMsg: trackID=2257759 liked=false disliked=false
+[15:26:48.756] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:48.756] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:48.756] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:48.792] [ui] renderNowPlaying: painting fanartEscape len=208249 (w=36 h=32)
+[15:26:49.009] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/2/4/8/1/6/5/248165601017614ca6a08d86a17dab5a.png?quality=75&size=320x320 content-type=image/png bytes=193697 magic=PNG id=1
+[15:26:49.009] [fanart] EncodePlaceholder: id=1 cols=30 rows=15 imgBytes=165964 transmitLen=222420 blockLen=3869
+[15:26:49.009] [ui] fanartReady APPLIED url=https://cdn-images.audioaddict.com/2/4/8/1/6/5/248165601017614ca6a08d86a17dab5a.png?size=300x300&quality=75 bytes=226289
+[15:26:49.009] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:49.009] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:49.009] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:49.021] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.073] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.073] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.073] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.073] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.074] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.074] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.074] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.096] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.192] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.192] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.192] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.192] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.192] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.192] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.192] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.200] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.356] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.356] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.356] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.356] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.357] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.357] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.357] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.375] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.502] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.502] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.502] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.502] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.503] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.503] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.503] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.515] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.566] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/7/9/e/0/f/0/79e0f098c1ab36412c20c83f4bc589e5.png?quality=75&size=320x320 content-type=image/png bytes=120868 magic=PNG id=265
+[15:26:50.566] [fanart] EncodePlaceholder: id=265 cols=16 rows=8 imgBytes=99890 transmitLen=133881 blockLen=1167
+[15:26:50.567] [ui] channelThumb OK key=numetal bytes=135048
+[15:26:50.567] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.567] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.567] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.586] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.651] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/8/5/2/a/9/3/852a93b80f3ba3cb8a1008a02508c950.png?quality=75&size=320x320 content-type=image/png bytes=169875 magic=PNG id=266
+[15:26:50.651] [fanart] EncodePlaceholder: id=266 cols=16 rows=8 imgBytes=141673 transmitLen=189873 blockLen=1175
+[15:26:50.651] [ui] channelThumb OK key=90srock bytes=191048
+[15:26:50.651] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.651] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.651] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.661] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.670] [ui] key: type=down alt=false runes="" str="down" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.670] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.670] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.670] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.670] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.670] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.670] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.678] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.700] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/6d5979bfd15229be321ef7f1b21eb813.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=20169 magic=JPEG id=268
+[15:26:50.700] [fanart] EncodePlaceholder: id=268 cols=16 rows=8 imgBytes=130264 transmitLen=174581 blockLen=1175
+[15:26:50.700] [ui] channelThumb OK key=jambands bytes=175756
+[15:26:50.700] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.700] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.700] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.708] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/3/e/9/2/e/0/3e92e0e906d7856238971bb3a0c7d9cc.png?quality=75&size=320x320 content-type=image/png bytes=132101 magic=PNG id=267
+[15:26:50.709] [fanart] EncodePlaceholder: id=267 cols=16 rows=8 imgBytes=114939 transmitLen=154045 blockLen=1175
+[15:26:50.709] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.717] [ui] channelThumb OK key=classichardrock bytes=155220
+[15:26:50.717] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.717] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.717] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.725] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.772] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/6/e/a/d/2/f/6ead2f64f5d5410f23efea503ed8295f.png?quality=75&size=320x320 content-type=image/png bytes=71349 magic=PNG id=269
+[15:26:50.772] [fanart] EncodePlaceholder: id=269 cols=16 rows=8 imgBytes=88782 transmitLen=118989 blockLen=1175
+[15:26:50.772] [ui] channelThumb OK key=hairbands bytes=120164
+[15:26:50.772] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.772] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.772] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.779] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:50.879] [ui] key: type=enter alt=false runes="" str="enter" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=2257759 voteInFlight=false session_key_len=32
+[15:26:50.879] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:50.879] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:50.879] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:50.887] [ui] renderNowPlaying: painting fanartEscape len=226289 (w=36 h=32)
+[15:26:51.162] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:51.162] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:51.162] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:51.162] [ui] refreshFanart: mode=kitty track.ArtURL="" ch.Key="numetal" ch.AssetURL="//cdn-images.audioaddict.com/3/4/9/3/9/e/34939e0761a740f50a6da7240f592837.png"
+[15:26:51.162] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/7/9/e/0/f/0/79e0f098c1ab36412c20c83f4bc589e5.png?size=300x300&quality=75" currentSrc="https://cdn-images.audioaddict.com/2/4/8/1/6/5/248165601017614ca6a08d86a17dab5a.png?size=300x300&quality=75" hasEscape=true
+[15:26:51.162] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:51.162] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:51.162] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:51.189] [ui] renderNowPlaying: no fanartEscape — using placeholder (w=36 h=32)
+[15:26:51.255] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/7/9/e/0/f/0/79e0f098c1ab36412c20c83f4bc589e5.png?quality=75&size=320x320 content-type=image/png bytes=83044 magic=PNG id=1
+[15:26:51.255] [fanart] EncodePlaceholder: id=1 cols=30 rows=15 imgBytes=99890 transmitLen=133880 blockLen=3869
+[15:26:51.255] [ui] fanartReady APPLIED url=https://cdn-images.audioaddict.com/7/9/e/0/f/0/79e0f098c1ab36412c20c83f4bc589e5.png?size=300x300&quality=75 bytes=137749
+[15:26:51.255] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:51.255] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:51.255] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:51.266] [ui] renderNowPlaying: painting fanartEscape len=137749 (w=36 h=32)
+[15:26:51.880] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:51.880] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:51.880] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:51.880] [ui] refreshFanart: mode=kitty track.ArtURL="//cdn-images.audioaddict.com/8/c/1/c/b/7/8c1cb7ced54d9982df05fc468dd65946.jpg" ch.Key="numetal" ch.AssetURL="//cdn-images.audioaddict.com/3/4/9/3/9/e/34939e0761a740f50a6da7240f592837.png"
+[15:26:51.880] [ui] refreshFanart: src="https://cdn-images.audioaddict.com/8/c/1/c/b/7/8c1cb7ced54d9982df05fc468dd65946.jpg?size=300x300&quality=75" currentSrc="https://cdn-images.audioaddict.com/7/9/e/0/f/0/79e0f098c1ab36412c20c83f4bc589e5.png?size=300x300&quality=75" hasEscape=true
+[15:26:51.880] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:51.880] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:51.880] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:51.901] [ui] renderNowPlaying: painting fanartEscape len=137749 (w=36 h=32)
+[15:26:52.155] [fanart] FetchPlaceholder OK url=https://cdn-images.audioaddict.com/8/c/1/c/b/7/8c1cb7ced54d9982df05fc468dd65946.jpg?quality=75&size=320x320 content-type=image/jpeg bytes=19080 magic=JPEG id=1
+[15:26:52.155] [fanart] EncodePlaceholder: id=1 cols=30 rows=15 imgBytes=271104 transmitLen=363284 blockLen=3869
+[15:26:52.155] [ui] fanartReady APPLIED url=https://cdn-images.audioaddict.com/8/c/1/c/b/7/8c1cb7ced54d9982df05fc468dd65946.jpg?size=300x300&quality=75 bytes=367153
+[15:26:52.155] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:52.155] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:52.155] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:52.167] [ui] renderNowPlaying: painting fanartEscape len=367153 (w=36 h=32)
+[15:26:52.203] [2026-06-30T15:26:52.203001Z] [audioaddict] [audioaddict.go:1043] [15:26:52.203] FetchTrack OK network=rockradio trackID=655946 title="Lotion" artist="Deftones" up=120 down=17 who_up_size=5220 who_up_seed=1782828328 who_up_bits=164[15:26:52.203] 
+[15:26:52.203] [ui] trackVoteLoadedMsg: trackID=655946 liked=false disliked=false
+[15:26:52.203] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:52.203] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:52.203] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:52.211] [ui] renderNowPlaying: painting fanartEscape len=367153 (w=36 h=32)
+[15:26:54.299] [ui] key: type=esc alt=false runes="" str="esc" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=655946 voteInFlight=false session_key_len=32
+[15:26:54.300] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:54.300] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:54.300] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:54.308] [ui] renderNowPlaying: painting fanartEscape len=367153 (w=36 h=32)
+[15:26:55.043] [ui] key: type=ctrl+c alt=false runes="" str="ctrl+c" focus=0 loginField=0 loginBusy=false loginError="" currentTrack.ID=655946 voteInFlight=false session_key_len=32
+[15:26:55.043] [ui] quit key received (type=ctrl+c)
+[15:26:55.043] [ui] quit: m.cancel() returned
+[15:26:55.053] [ui] quit: m.player.Close() returned (err=<nil>)
+[15:26:55.059] [ui] quit: returning tea.Quit
+[15:26:55.059] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:55.059] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:55.059] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:55.072] [ui] renderNowPlaying: painting fanartEscape len=367153 (w=36 h=32)
+[15:26:55.095] [fanart] DetectMode: TERM="tmux-256color" TERM_PROGRAM="tmux" GHOSTTY_RESOURCES_DIR="/Applications/Ghostty.app/Contents/Resources/ghostty" KITTY_WINDOW_ID="" COLORTERM="truecolor" ADDIPLAY_FORCE_FANART="1"
+[15:26:55.095] [fanart] DetectMode: hostKittyCapable=true inTmux=true tmuxStripsGraphics=false hasTruecolor=true
+[15:26:55.095] [fanart] DetectMode: → ModeKitty (kitty capable, tmux not stripping)
+[15:26:55.108] [ui] renderNowPlaying: painting fanartEscape len=367153 (w=36 h=32)
+[15:26:55.135] [tui] p.Run() returned (err=<nil>)
+[15:26:55.135] [tui] Kitty image storage cleared; runTUI returning
+[15:26:55.135] addiplay: === addiplay session ended @ 2026-06-30T15:26:55Z ===

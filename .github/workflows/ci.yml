@@ -1,0 +1,42 @@
+name: ci
+
+# Tests + lint on every PR and push to main.
+# Dev/release builds live in build.dev.yml and build.release.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - run: go build ./...
+      - run: go test ./...
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  integration:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - run: sudo apt-get update && sudo apt-get install -y mpv
+      - run: go test -tags=integration ./...
+        env:
+          AA_INTEGRATION_EMAIL: ${{ secrets.AA_INTEGRATION_EMAIL }}
+          AA_INTEGRATION_PASSWORD: ${{ secrets.AA_INTEGRATION_PASSWORD }}

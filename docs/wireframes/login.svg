@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">
+  <title>ADDIPLAY — Login</title>
+  <desc>Wireframe: credential entry. Today this lives as the `addiplay login` CLI prompt (email + masked password). Sketched here as a centered TUI form for future migration into the bubbletea root.</desc>
+
+  <rect width="1100" height="720" fill="#f7f8fa"/>
+
+  <text x="28" y="38" font-size="14" fill="#6b7280" font-weight="500" letter-spacing="0.08em">LOGIN · CREDENTIAL FORM</text>
+  <text x="28" y="58" font-size="11" fill="#9aa3b2">Reached via `addiplay login` (one-shot) or auto-prompted on first run / when listen_key is rejected.</text>
+
+  <g transform="translate(28,80)">
+    <rect x="2" y="3" width="1044" height="592" rx="10" fill="#000" opacity="0.07"/>
+    <rect x="0" y="0" width="1044" height="28" rx="10" fill="#1f2632"/>
+    <rect x="0" y="14" width="1044" height="14" fill="#1f2632"/>
+    <circle cx="16" cy="14" r="6" fill="#ff5f57"/>
+    <circle cx="36" cy="14" r="6" fill="#febc2e"/>
+    <circle cx="56" cy="14" r="6" fill="#28c840"/>
+    <text x="522" y="18" text-anchor="middle" font-size="10" fill="#6b7280">addiplay · sign in</text>
+
+    <rect x="0" y="28" width="1044" height="564" fill="#151b25"/>
+
+    <g transform="translate(12,40)" font-size="14" fill="#e6e6e6" xml:space="preserve">
+
+      <!-- minimal header: brand only (no tabs — pre-auth state) -->
+      <rect x="0" y="-13" width="42" height="18" fill="#288cfb"/>
+      <text x="4" y="0" fill="#151b25" font-weight="700">ADDIPLAY</text>
+      <text x="51" y="0" fill="#888">audio addict play</text>
+      <text x="1015" y="0" text-anchor="end" fill="#888">v0.1.0</text>
+
+      <!-- centered modal form -->
+      <g transform="translate(280,90)">
+        <!-- form panel -->
+        <text x="0" y="0" fill="#288cfb">╭─ Sign in to AudioAddict ───────────────────────────────────╮</text>
+
+        <!-- intro copy -->
+        <text x="14" y="34" fill="#888">Use your DI.fm / RadioTunes / RockRadio account.</text>
+        <text x="14" y="54" fill="#888">Premium subscription unlocks 256k streams.</text>
+
+        <!-- Email field (focused) -->
+        <text x="14" y="92" fill="#e6e6e6">Email</text>
+        <rect x="14" y="100" width="430" height="22" fill="#212737" stroke="#288cfb"/>
+        <text x="22" y="116" fill="#e6e6e6">you@example.com</text>
+        <rect x="148" y="103" width="2" height="16" fill="#e6e6e6">
+          <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+        </rect>
+
+        <!-- Password field -->
+        <text x="14" y="148" fill="#e6e6e6">Password</text>
+        <rect x="14" y="156" width="430" height="22" fill="#212737" stroke="#3a4253"/>
+        <text x="22" y="172" fill="#e6e6e6">●●●●●●●●●●</text>
+        <text x="450" y="172" fill="#888" font-size="11">echo off</text>
+
+        <!-- Submit button + cancel -->
+        <rect x="14"  y="204" width="118" height="24" fill="#288cfb"/>
+        <text x="73"  y="220" fill="#151b25" font-weight="700" text-anchor="middle">[ Sign in ]</text>
+        <text x="148" y="220" fill="#888">[ Esc cancel ]</text>
+
+        <!-- inline status / hint -->
+        <text x="14" y="258" fill="#888">No password? Set one at https://www.audioaddict.com/account</text>
+        <text x="14" y="276" fill="#888">Creds are stored in the OS keyring (Keychain / Secret Service / Wincred),</text>
+        <text x="14" y="294" fill="#888">with a chmod-600 fallback under $XDG_CONFIG_HOME/addiplay/creds.json.</text>
+
+        <!-- box verticals + close -->
+        <text x="0"   y="20"  fill="#288cfb">│</text>
+        <text x="528" y="20"  fill="#288cfb">│</text>
+        <text x="0"   y="40"  fill="#288cfb">│</text>
+        <text x="528" y="40"  fill="#288cfb">│</text>
+        <text x="0"   y="60"  fill="#288cfb">│</text>
+        <text x="528" y="60"  fill="#288cfb">│</text>
+        <text x="0"   y="80"  fill="#288cfb">│</text>
+        <text x="528" y="80"  fill="#288cfb">│</text>
+        <text x="0"   y="100" fill="#288cfb">│</text>
+        <text x="528" y="100" fill="#288cfb">│</text>
+        <text x="0"   y="120" fill="#288cfb">│</text>
+        <text x="528" y="120" fill="#288cfb">│</text>
+        <text x="0"   y="140" fill="#288cfb">│</text>
+        <text x="528" y="140" fill="#288cfb">│</text>
+        <text x="0"   y="160" fill="#288cfb">│</text>
+        <text x="528" y="160" fill="#288cfb">│</text>
+        <text x="0"   y="180" fill="#288cfb">│</text>
+        <text x="528" y="180" fill="#288cfb">│</text>
+        <text x="0"   y="200" fill="#288cfb">│</text>
+        <text x="528" y="200" fill="#288cfb">│</text>
+        <text x="0"   y="220" fill="#288cfb">│</text>
+        <text x="528" y="220" fill="#288cfb">│</text>
+        <text x="0"   y="240" fill="#288cfb">│</text>
+        <text x="528" y="240" fill="#288cfb">│</text>
+        <text x="0"   y="260" fill="#288cfb">│</text>
+        <text x="528" y="260" fill="#288cfb">│</text>
+        <text x="0"   y="280" fill="#288cfb">│</text>
+        <text x="528" y="280" fill="#288cfb">│</text>
+        <text x="0"   y="300" fill="#288cfb">│</text>
+        <text x="528" y="300" fill="#288cfb">│</text>
+
+        <text x="0" y="320" fill="#288cfb">╰────────────────────────────────────────────────────────────╯</text>
+      </g>
+
+      <!-- KEY HINTS pinned bottom -->
+      <text x="0" y="452" fill="#888">tab next field   enter submit   esc cancel   ctrl-c quit</text>
+    </g>
+  </g>
+
+  <text x="28" y="700" font-size="10" fill="#9aa3b2">Today: `addiplay login` reads email + password from stdin (tty-masked); this wireframe sketches a future in-TUI overlay.</text>
+</svg>

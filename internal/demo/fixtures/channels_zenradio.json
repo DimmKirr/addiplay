@@ -1,0 +1,7 @@
+[
+  {"id": 501, "key": "meditation", "name": "Meditation", "description": "Deep meditative ambient", "asset_url": ""},
+  {"id": 502, "key": "yoga", "name": "Yoga", "description": "Calming flow", "asset_url": ""},
+  {"id": 503, "key": "naturesounds", "name": "Nature Sounds", "description": "Forest, rain, ocean", "asset_url": ""},
+  {"id": 504, "key": "sleep", "name": "Sleep", "description": "Slow ambient for sleep", "asset_url": ""},
+  {"id": 505, "key": "spa", "name": "Spa", "description": "Spa and wellness", "asset_url": ""}
+]

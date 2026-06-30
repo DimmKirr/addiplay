@@ -1,0 +1,56 @@
+version: '3'
+
+vars:
+  BIN: addiplay
+  PKG: github.com/dimmkirr/addiplay
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+
+tasks:
+  default:
+    cmds: [task: build]
+
+  build:
+    desc: Build the addiplay binary
+    cmds:
+      - go build -ldflags "-X main.Version={{.VERSION}}" -o ./bin/{{.BIN}} .
+
+  run:
+    desc: Run the TUI
+    cmds:
+      - go run -ldflags "-X main.Version={{.VERSION}}" .
+
+  test:
+    desc: Unit + component tests (fast; no creds, no real API, no mpv)
+    cmds:
+      - go test ./...
+
+  test-update:
+    desc: Re-record golden files
+    cmds:
+      - go test ./... -update
+
+  test-integration:
+    desc: Integration tests against the real AudioAddict API (needs AA_INTEGRATION_EMAIL / AA_INTEGRATION_PASSWORD)
+    cmds:
+      - go test ./... -tags=integration
+
+  lint:
+    desc: golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  fmt:
+    desc: gofmt + goimports
+    cmds:
+      - gofmt -w .
+
+  tidy:
+    desc: go mod tidy
+    cmds:
+      - go mod tidy
+
+  release-snapshot:
+    desc: Build a local goreleaser snapshot for all platforms
+    cmds:
+      - goreleaser release --snapshot --clean
