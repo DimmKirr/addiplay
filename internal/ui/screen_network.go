@@ -57,12 +57,5 @@ func (m Model) viewNetworkPicker() string {
 	}
 	rows = append(rows, "")
 	rows = append(rows, m.st.keyHint.Render("↑↓ select   enter switch   esc cancel"))
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(m.theme.Accent).
-		Padding(1, 2).
-		Render(strings.Join(rows, "\n"))
-	return m.st.app.Width(m.width).Height(m.height).Render(
-		lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box),
-	)
+	return m.renderCenteredPopover(strings.Join(rows, "\n"), 2, 1)
 }

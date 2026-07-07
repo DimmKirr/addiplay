@@ -147,7 +147,7 @@ func renderCard(m Model, ch audioaddict.Channel, selected, playing bool, width i
 	title := buildCardTitle(m, ch, selected, playing, contentW)
 	tagline := buildCardTagline(m, ch, contentW)
 	separator := m.st.muted.Render(strings.Repeat("─", contentW))
-	npArtist, npTitle, metaLine := buildCardTrackRows(m, ch, playing, contentW)
+	npArtist, npTitle := buildCardTrackRows(m, ch, playing, contentW)
 
 	contentRows := []string{
 		title,
@@ -155,7 +155,6 @@ func renderCard(m Model, ch audioaddict.Channel, selected, playing bool, width i
 		separator,
 		npArtist,
 		npTitle,
-		metaLine,
 	}
 	// Pad the content column to match the thumbnail's row height so the
 	// card border closes cleanly at the bottom and the JoinHorizontal
@@ -220,17 +219,29 @@ func buildCardTagline(m Model, ch audioaddict.Channel, w int) string {
 	return m.st.muted.Render("—")
 }
 
-// buildCardTrackRows is the three-row data block at the bottom of each
-// card. For the currently-playing channel we have m.currentTrack filled
-// in; for everything else we show muted placeholders (would need
-// per-channel polling to populate — see TODO at the top of this file).
-func buildCardTrackRows(m Model, ch audioaddict.Channel, playing bool, w int) (artist, title, meta string) {
+// buildCardTrackRows is the two-row track block at the bottom of each
+// card (artist + title for the currently-playing channel; muted dash
+// placeholders for the rest).
+//
+// DIMM-395: a third "meta" row used to live here showing a hardcoded
+// `premium_high · 256k aac · asset N` string. It was identical on every
+// card and exposed dev-internal codec jargon — listener-unfriendly and
+// real-estate waste. Removed; the row budget is reabsorbed by the
+// content-rows padding loop in renderCard.
+func buildCardTrackRows(m Model, ch audioaddict.Channel, playing bool, w int) (artist, title string) {
 	const labelPrefix = "♪ "
+	// heartGlyph already returns "" when no track is active; safe to
+	// append unconditionally to the playing card. Width budget accounts
+	// for it implicitly — the glyph + leading space is 2 cells.
+	hg := ""
+	if playing {
+		hg = heartGlyph(m)
+	}
 	if playing && (m.currentTrack.Artist != "" || m.currentTrack.Title != "") {
-		artist = m.st.nowPlaying.Padding(0).Bold(true).Render(labelPrefix + m.currentTrack.Artist)
+		artist = m.st.nowPlaying.Padding(0).Bold(true).Render(labelPrefix + m.currentTrack.Artist + hg)
 		title = m.st.muted.Render("  " + truncateLine(m.currentTrack.Title, w-2))
 	} else if playing && m.currentTrack.Track != "" {
-		artist = m.st.nowPlaying.Padding(0).Render(labelPrefix + truncateLine(m.currentTrack.Track, w-2))
+		artist = m.st.nowPlaying.Padding(0).Render(labelPrefix + truncateLine(m.currentTrack.Track, w-2) + hg)
 		title = m.st.muted.Render("")
 	} else if playing {
 		artist = m.st.muted.Render(labelPrefix + "(no track info)")
@@ -242,13 +253,8 @@ func buildCardTrackRows(m Model, ch audioaddict.Channel, playing bool, w int) (a
 		artist = m.st.muted.Render(labelPrefix + "—")
 		title = m.st.muted.Render("")
 	}
-	// Metadata: bitrate + asset id; listener counts intentionally omitted
-	// (AudioAddict's public API doesn't expose them).
-	parts := []string{"premium_high · 256k aac"}
-	if ch.AssetURL != "" {
-		parts = append(parts, fmt.Sprintf("asset %d", ch.ID))
-	}
-	meta = m.st.muted.Render(truncateLine(strings.Join(parts, "  ·  "), w))
+	_ = ch
+	_ = w
 	return
 }
 

@@ -19,6 +19,17 @@ type keymap struct {
 	// leaving the TUI. Capital L to avoid collision with the volume
 	// keys' '-' (which `l` would be a lower-priority lookalike for).
 	Logout key.Binding
+	// Like toggles the AudioAddict vote on the currently-playing track.
+	// Lowercase `l` was previously unbound; uppercase `L` stays as logout.
+	Like key.Binding
+	Dislike key.Binding
+	// SkipTrack posts a skip event and re-tunes the channel so the
+	// stream advances to a new track.
+	SkipTrack key.Binding
+	// SkipChannel jumps playback to the next favorite channel on the
+	// current network, wrapping around.
+	SkipChannel key.Binding
+	Help        key.Binding
 }
 
 var keys = keymap{
@@ -34,4 +45,9 @@ var keys = keymap{
 	Network:     key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "network")),
 	SwitchTab:   key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "favs/all")),
 	Logout:      key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "logout")),
+	Like:        key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "like")),
+	Dislike:     key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "dislike")),
+	SkipTrack:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "skip track")),
+	SkipChannel: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "next fav")),
+	Help:        key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "show keys")),
 }

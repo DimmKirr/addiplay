@@ -67,6 +67,7 @@ func TestImageDecode_supportsAllExpectedFormats(t *testing.T) {
 // the prior end-to-end test (PNG-only) missed. Regression guard for the
 // "first=JPEG, unknown format" toast.
 func TestFetch_endToEnd_servesJPEGandGIF(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty") // disable tmux wrap so we test raw Kitty protocol
 	cases := []struct {
 		name string
 		body func() []byte

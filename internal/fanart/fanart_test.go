@@ -74,6 +74,7 @@ func TestToPNGThumbnail_pngRoundtrip(t *testing.T) {
 // matches the Kitty graphics protocol (which Ghostty implements). Spec:
 // https://sw.kovidgoyal.net/kitty/graphics-protocol/
 func TestEncode_kittyProtocolShape(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty") // disable tmux wrap so we test raw protocol
 	// 8 KB synthetic payload → 3 chunks at the 4096-byte chunk size.
 	raw := bytes.Repeat([]byte{0xAB}, 8192)
 	got := Encode(raw, 30, 14, 42)
@@ -109,6 +110,7 @@ func TestEncode_kittyProtocolShape(t *testing.T) {
 // TestEncode_smallPayloadSingleChunk verifies the typical thumbnail case
 // (<4 KB after base64): no chunking, single `m=0` header.
 func TestEncode_smallPayloadSingleChunk(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty") // disable tmux wrap so we test raw protocol
 	raw := []byte("tiny")
 	got := Encode(raw, 30, 14, 7)
 	if !strings.HasPrefix(got, "\x1b_Ga=T,f=100,i=7,c=30,r=14,q=2,m=0;") {
@@ -171,6 +173,7 @@ func TestEncodeASCII_zeroDimensions(t *testing.T) {
 }
 
 func TestFetch_endToEndWithLocalServer(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty") // disable tmux wrap so we test raw protocol
 	// 64x64 PNG served by httptest; verify Fetch downloads + scales + encodes.
 	src := image.NewRGBA(image.Rect(0, 0, 64, 64))
 	var pngBytes bytes.Buffer

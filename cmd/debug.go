@@ -32,19 +32,27 @@ func openDebugLog() (*debugSink, func(), error) {
 		return nil, func() {}, nil
 	}
 	// Resolve absolute path so mpv (which has a different cwd) writes to
-	// the same file we opened.
-	abs, err := filepath.Abs(debugLog)
+	// the right file.
+	mpvAbs, err := filepath.Abs(debugLog)
 	if err != nil {
 		return nil, func() {}, fmt.Errorf("resolve debug log path: %w", err)
 	}
-	f, err := os.OpenFile(abs, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_APPEND, 0o600)
+	// addiplay's own events go to <debug.log>.addiplay rather than
+	// sharing the file with mpv. Previously we shared, but mpv truncates
+	// its --log-file on open and wipes out every addiplay write from
+	// before the player launched (NewModel, runTUI startup, the first
+	// channelsLoaded, key presses leading up to player init). Two files
+	// is the only reliable way to keep both halves of the trace.
+	addiAbs := mpvAbs + ".addiplay"
+	f, err := os.OpenFile(addiAbs, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_APPEND, 0o600)
 	if err != nil {
-		return nil, func() {}, fmt.Errorf("open debug log %s: %w", abs, err)
+		return nil, func() {}, fmt.Errorf("open debug log %s: %w", addiAbs, err)
 	}
 	w := &debugWriter{w: f}
 	w.line("=== addiplay debug log @ %s — version %s ===", time.Now().Format(time.RFC3339), Version)
-	w.line("=== mpv output will be appended below via --log-file=%s ===", abs)
-	return &debugSink{Writer: w, MPVLogPath: abs}, func() {
+	w.line("=== mpv output goes to %s (--log-file) ===", mpvAbs)
+	w.line("=== addiplay events go to %s (this file) ===", addiAbs)
+	return &debugSink{Writer: w, MPVLogPath: mpvAbs}, func() {
 		w.line("=== addiplay session ended @ %s ===", time.Now().Format(time.RFC3339))
 		_ = f.Close()
 	}, nil

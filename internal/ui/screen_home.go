@@ -15,6 +15,25 @@ import (
 // overlay active). All transport, navigation, favourites, tab-switching,
 // volume and overlay-open keys live here.
 func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Any key (other than the `L` re-press handled in keys.Logout below)
+	// while a logout confirmation is pending cancels the pending state.
+	// Keeps the safety net real: a stray key shouldn't leave the toast
+	// hanging in "press L again" limbo.
+	if m.pendingLogout {
+		if msg.Type == tea.KeyEsc {
+			m.pendingLogout = false
+			m.toast = ""
+			return m, nil
+		}
+		// Non-`L` keys also clear the pending state so the toast goes
+		// away as the user continues. The `L` case below handles its
+		// own state transition.
+		if !key.Matches(msg, keys.Logout) {
+			m.pendingLogout = false
+			m.toast = ""
+			// fall through — the actual key still gets routed
+		}
+	}
 	switch {
 	case key.Matches(msg, keys.Quit):
 		dlog("quit key received (type=%s)", msg.Type)
@@ -52,8 +71,9 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if ch, ok := m.selectedChannel(); ok && m.player != nil {
 			m.toast = ""
+			m.toastIsWarn = false
 			m.resolving = true
-			return m, playSelectedCmd(m.ctx, m.client, m.player, m.currentNetwork, ch, m.creds.ListenKey)
+			return m, playSelectedCmd(m.ctx, m.client, m.player, m.currentNetwork, ch)
 		}
 
 	case key.Matches(msg, keys.PauseResume):
@@ -105,6 +125,7 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.tab = TabAll
 		}
 		m.selIdx = 0
+		return m, tea.Batch(m.kickoffVisibleThumbs()...)
 
 	case key.Matches(msg, keys.Search):
 		m.focus = FocusSearch
@@ -115,13 +136,106 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = FocusNetworkPicker
 		m.netCursor = networkIdxForSlug(m.currentNetwork)
 
+	case key.Matches(msg, keys.Like):
+		dlog("Like key matched (`l`): currentTrack.ID=%d voteInFlight=%t currentChannel=%q playingNetwork=%q session_key_len=%d",
+			m.currentTrack.ID, m.voteInFlight, m.currentChannel, m.playingNetwork, len(m.creds.SessionKey))
+		if dir, ok := m.prepareVote(voteUp); ok {
+			channelID := channelIDFromKey(m.channels, m.currentChannel)
+			m.voteInFlight = true
+			dlog("Like key: dispatching voteCmd (network=%s track=%d channel=%d dir=%d)",
+				m.playingNetwork, m.currentTrack.ID, channelID, dir)
+			return m, voteCmd(m.ctx, m.client, m.playingNetwork, m.currentTrack.ID, channelID, dir)
+		}
+		dlog("Like key: prepareVote returned ok=false — no Cmd dispatched")
+
+	case key.Matches(msg, keys.Dislike):
+		dlog("Dislike key matched (`d`): currentTrack.ID=%d voteInFlight=%t currentChannel=%q playingNetwork=%q session_key_len=%d",
+			m.currentTrack.ID, m.voteInFlight, m.currentChannel, m.playingNetwork, len(m.creds.SessionKey))
+		if dir, ok := m.prepareVote(voteDown); ok {
+			channelID := channelIDFromKey(m.channels, m.currentChannel)
+			m.voteInFlight = true
+			dlog("Dislike key: dispatching voteCmd (network=%s track=%d channel=%d dir=%d)",
+				m.playingNetwork, m.currentTrack.ID, channelID, dir)
+			return m, voteCmd(m.ctx, m.client, m.playingNetwork, m.currentTrack.ID, channelID, dir)
+		}
+		dlog("Dislike key: prepareVote returned ok=false — no Cmd dispatched")
+
+	case key.Matches(msg, keys.SkipTrack):
+		if m.resolving || m.skipInFlight || m.player == nil || m.currentTrack.ID == 0 {
+			break
+		}
+		if m.trackQueue == nil {
+			m.toast = "live stream mode — skip not available"
+			m.toastIsWarn = true
+			break
+		}
+		if m.creds.SessionKey == "" {
+			m.toast = "session expired — sign in again"
+			m.toastIsWarn = false
+			m = m.initLoginInputs(false)
+			break
+		}
+		channelID := channelIDFromKey(m.channels, m.currentChannel)
+		if channelID == 0 {
+			break
+		}
+		ch, ok := channelByID(m.channels, channelID)
+		if !ok {
+			break
+		}
+		trackLen := int(m.currentTrack.Duration)
+		dlog("SkipTrack key (`s`): track=%d channel=%d net=%s len=%d queue=%t", m.currentTrack.ID, channelID, m.playingNetwork, trackLen, m.trackQueue != nil)
+		m.skipInFlight = true
+		return m, skipTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, m.currentTrack.ID, channelID, trackLen, 0, ch, m.trackQueue)
+
+	case key.Matches(msg, keys.SkipChannel):
+		if m.resolving {
+			break
+		}
+		if m.player == nil {
+			break
+		}
+		next, ok := m.nextFavoriteChannel()
+		if !ok {
+			m.toast = "no favorites to skip to — press [f] to star channels"
+			break
+		}
+		dlog("SkipChannel key (`S`): jumping to fav channel=%q on net=%s", next.Key, m.currentNetwork)
+		m.toast = ""
+		m.resolving = true
+		for i, ch := range m.visibleChannels() {
+			if ch.Key == next.Key {
+				m.selIdx = i
+				break
+			}
+		}
+		return m, playSelectedCmd(m.ctx, m.client, m.player, m.currentNetwork, next)
+
+	case key.Matches(msg, keys.Help):
+		// DIMM-392: open the keymap overlay. Esc / `?` / `q` close it.
+		// `prevFocus` lets the overlay restore to whichever screen the
+		// user came from (currently always FocusChannels from this
+		// handler, but kept generic so other focus handlers can route
+		// through the same overlay later).
+		dlog("Help key matched (`?`): opening overlay (prevFocus=%d)", m.focus)
+		m.prevFocus = m.focus
+		m.focus = FocusHelp
+		return m, nil
+
 	case key.Matches(msg, keys.Logout):
-		// In-TUI logout: clear creds, stop playback, drop back to the
-		// login overlay so the user can sign in as someone else (or
-		// reset a wedged session) without leaving the binary. Mirrors
-		// the headless `addiplay --logout` action (cmd/auth.go).
-		dlog("logout key received")
-		if err := creds.Clear(); err != nil {
+		// DIMM-393: confirm-then-act for the destructive logout. First
+		// `L` arms `pendingLogout`; the second within ~3s actually
+		// wipes the session (mirrors `addiplay --logout` / cmd/auth.go).
+		// Anything else (esc / unrelated key) clears the pending flag.
+		if !m.pendingLogout {
+			dlog("Logout key (`L`): arming confirmation")
+			m.pendingLogout = true
+			m.toast = "press L again to confirm logout · esc cancels"
+			return m, logoutConfirmTimeoutCmd()
+		}
+		dlog("Logout key (`L`) again: confirmed — clearing session")
+		m.pendingLogout = false
+		if err := m.client.Logout(); err != nil {
 			m.toast = "logout: " + err.Error()
 			break
 		}
@@ -131,7 +245,7 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Wipe in-memory session state so the model looks freshly
 		// constructed; the next channels-load attempt will 401 and the
 		// login overlay handler is identical to the auto-pop path.
-		m.creds = creds.Creds{}
+		m.creds = creds.Session{}
 		m.currentChannel = ""
 		m.currentTrack = audioaddict.Track{}
 		m.fanartEscape = ""
@@ -140,6 +254,74 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m = m.initLoginInputs(true)
 	}
 	return m, nil
+}
+
+// prepareVote validates the preconditions for a vote action and returns
+// the actual direction to send. `desired` is what the user expressed by
+// pressing the key (voteUp for `l`, voteDown for `d`); the returned
+// direction is voteClear when the user pressed the key on a track that
+// already carries that vote (toggle off). ok==false means the press
+// should be ignored entirely (no track, missing channel, mid-flight,
+// stale session key).
+func (m *Model) prepareVote(desired voteDirection) (voteDirection, bool) {
+	chID := channelIDFromKey(m.channels, m.currentChannel)
+	dlog("prepareVote desired=%d currentTrack.ID=%d voteInFlight=%t currentChannel=%q channelID=%d session_key_len=%d liked=%t disliked=%t",
+		desired, m.currentTrack.ID, m.voteInFlight, m.currentChannel, chID, len(m.creds.SessionKey),
+		m.likedTracks[m.currentTrack.ID], m.dislikedTracks[m.currentTrack.ID])
+	if m.currentTrack.ID == 0 || m.voteInFlight {
+		dlog("prepareVote DROP: no track or vote in flight")
+		return 0, false
+	}
+	if chID == 0 {
+		dlog("prepareVote DROP: channelID==0 (currentChannel=%q channels_loaded=%d)", m.currentChannel, len(m.channels))
+		return 0, false
+	}
+	if m.creds.SessionKey == "" {
+		// Old credfile (pre-DIMM-381) — surface the same "sign in
+		// again" path the unauthorized handlers use so the user
+		// gets a fresh session_key.
+		dlog("prepareVote DROP: empty SessionKey — popping login overlay")
+		m.toast = "session expired — sign in again"
+		*m = m.initLoginInputs(false)
+		return 0, false
+	}
+	id := m.currentTrack.ID
+	switch desired {
+	case voteUp:
+		if m.likedTracks[id] {
+			return voteClear, true
+		}
+	case voteDown:
+		if m.dislikedTracks[id] {
+			return voteClear, true
+		}
+	}
+	return desired, true
+}
+
+// nextFavoriteChannel returns the next favorite channel after the one
+// currently playing, wrapping around. Returns false when the current
+// network has fewer than two favorites (nothing to skip to) or when
+// nothing is playing yet.
+func (m Model) nextFavoriteChannel() (audioaddict.Channel, bool) {
+	var favs []audioaddict.Channel
+	for _, ch := range m.channels {
+		if m.cfg.IsFavorite(m.currentNetwork, ch.Key) {
+			favs = append(favs, ch)
+		}
+	}
+	if len(favs) < 2 {
+		return audioaddict.Channel{}, false
+	}
+	cur := -1
+	for i, ch := range favs {
+		if ch.Key == m.currentChannel {
+			cur = i
+			break
+		}
+	}
+	next := (cur + 1) % len(favs)
+	return favs[next], true
 }
 
 // viewHome renders the full home frame: header, body (channels list +

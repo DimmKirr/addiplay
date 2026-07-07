@@ -26,6 +26,13 @@ type Config struct {
 	LastChannel   string     `yaml:"last_channel,omitempty"`
 	Volume        int        `yaml:"volume"` // 0..100
 	Favorites     []Favorite `yaml:"favorites,omitempty"`
+	// LikedTracks / DislikedTracks persist the user's vote across runs.
+	// AudioAddict's API returns a bloom filter of who voted (no
+	// voted_by_me field) and we haven't reverse-engineered their hash
+	// function, so we keep a local mirror instead. Votes made on di.fm
+	// web won't show up here; only what the user did via addiplay.
+	LikedTracks    []int64 `yaml:"liked_tracks,omitempty"`
+	DislikedTracks []int64 `yaml:"disliked_tracks,omitempty"`
 }
 
 // Default returns a Config seeded with reasonable defaults.

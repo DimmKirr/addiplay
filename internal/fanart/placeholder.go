@@ -73,7 +73,11 @@ var rowColDiacritics = []rune{
 // we don't emit. 1 is reserved by nowplaying.go; cards should use
 // 100+ to avoid collisions.
 func EncodePlaceholder(imgBytes []byte, cols, rows int, id uint32) string {
-	return buildPlaceholderTransmit(imgBytes, id, cols, rows) + placeholderBlock(id, cols, rows)
+	transmit := buildPlaceholderTransmit(imgBytes, id, cols, rows)
+	block := placeholderBlock(id, cols, rows)
+	dlog("EncodePlaceholder: id=%d cols=%d rows=%d imgBytes=%d transmitLen=%d blockLen=%d",
+		id, cols, rows, len(imgBytes), len(transmit), len(block))
+	return transmit + block
 }
 
 func buildPlaceholderTransmit(imgBytes []byte, id uint32, cols, rows int) string {
@@ -90,16 +94,22 @@ func buildPlaceholderTransmit(imgBytes []byte, id uint32, cols, rows int) string
 		if end >= len(b64) {
 			more = 0
 		}
+		// Per-chunk tmux wrap (DIMM-420 #2): bare APC escapes get
+		// eaten by tmux's parser even with `allow-passthrough on`.
+		// Each chunk has to be wrapped independently so tmux can
+		// forward the inner Kitty sequence to the host terminal.
+		var raw string
 		if i == 0 {
 			// First chunk: full param block. U=1 enables Unicode-
 			// placeholder mode (virtual placement, no auto-display).
 			// f=100 = PNG. q=2 = silent (no response from terminal).
-			fmt.Fprintf(&out,
+			raw = fmt.Sprintf(
 				"\x1b_Ga=T,U=1,f=100,i=%d,c=%d,r=%d,q=2,m=%d;%s\x1b\\",
 				id, cols, rows, more, chunk)
 		} else {
-			fmt.Fprintf(&out, "\x1b_Gm=%d;%s\x1b\\", more, chunk)
+			raw = fmt.Sprintf("\x1b_Gm=%d;%s\x1b\\", more, chunk)
 		}
+		out.WriteString(tmuxWrap(raw))
 	}
 	return out.String()
 }

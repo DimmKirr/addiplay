@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
+	"github.com/dimmkirr/addiplay/internal/cache"
 	"github.com/dimmkirr/addiplay/internal/creds"
 	"github.com/dimmkirr/addiplay/internal/fanart"
 )
@@ -61,12 +62,30 @@ func runDoctor(ctx context.Context, o io.Writer) error {
 	}
 
 	ApplyFanartFlags()
+
+	// Active capability probe — queries the terminal directly and
+	// (when inside tmux) asks tmux about allow-passthrough. Slower
+	// than env-only guesses (~100-300ms) but tells you the truth
+	// about what your terminal will actually render.
+	caps := fanart.Probe()
+	_, _ = fmt.Fprintf(o, "·  probe:      kitty_graphics=%t truecolor=%t in_tmux=%t tmux_passthrough=%t (ran=%t)\n",
+		caps.KittyGraphics, caps.Truecolor, caps.InTmux, caps.TmuxPassthrough, caps.ProbeRan)
+	if caps.ProbeError != nil {
+		_, _ = fmt.Fprintf(o, "·               probe error: %v\n", caps.ProbeError)
+	}
+
 	mode := fanart.DetectMode()
 	switch mode {
 	case fanart.ModeKitty:
 		_, _ = fmt.Fprintln(o, "✓  fanart:     Kitty graphics protocol (best quality, real pixels)")
 	case fanart.ModeASCII:
 		_, _ = fmt.Fprintln(o, "✓  fanart:     truecolor ASCII half-blocks (works in tmux, ssh, etc.)")
+		if caps.InTmux && !caps.TmuxPassthrough && envSuggestsKittyHost() {
+			_, _ = fmt.Fprintln(o, "              your host terminal supports Kitty graphics but tmux's")
+			_, _ = fmt.Fprintln(o, "              `allow-passthrough` is off — turn it on for higher-fidelity art:")
+			_, _ = fmt.Fprintln(o, "                  echo 'set -g allow-passthrough on' >> ~/.tmux.conf")
+			_, _ = fmt.Fprintln(o, "                  tmux source ~/.tmux.conf")
+		}
 	default:
 		_, _ = fmt.Fprintln(o, "✗  fanart:     no compatible rendering mode — no channel art")
 		switch {
@@ -100,7 +119,7 @@ func runDoctor(ctx context.Context, o io.Writer) error {
 	// 4. API reachability — cheap GET against the public channels list
 	apiCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	client := audioaddict.NewClient()
+	client := audioaddict.NewClient(nil) // doctor only does the public channels read; no auth state needed
 	channels, apiErr := client.Channels(apiCtx, "di")
 	switch {
 	case apiErr != nil:
@@ -117,8 +136,49 @@ func runDoctor(ctx context.Context, o io.Writer) error {
 		}
 	}
 
+	// 5. Cache
+	if cacheDir, err := cache.DefaultDir(); err == nil {
+		store, err := cache.NewFS(cacheDir)
+		if err == nil {
+			stat, err := store.Stat()
+			if err != nil {
+				_, _ = fmt.Fprintf(o, "·  cache:      %s (stat err: %v)\n", cacheDir, err)
+			} else if stat.TotalBytes == 0 && len(stat.Buckets) == 0 {
+				_, _ = fmt.Fprintf(o, "·  cache:      %s (empty)\n", cacheDir)
+			} else {
+				_, _ = fmt.Fprintf(o, "✓  cache:      %s (%s total)\n",
+					cacheDir, humanBytes(stat.TotalBytes))
+				for bucket, count := range stat.Buckets {
+					_, _ = fmt.Fprintf(o, "·               %s: %d entries\n", bucket, count)
+				}
+				_, _ = fmt.Fprintln(o, "              clear with: addiplay --clear-cache")
+			}
+		}
+	}
+
 	_, _ = fmt.Fprintln(o, strings.Repeat("─", 60))
 	return nil
+}
+
+// humanBytes formats a byte count for the doctor cache line. Keeps the
+// formatting honest (binary KiB/MiB) — `--doctor` is for diagnosis,
+// not marketing.
+func humanBytes(n int64) string {
+	const (
+		KiB = 1 << 10
+		MiB = 1 << 20
+		GiB = 1 << 30
+	)
+	switch {
+	case n >= GiB:
+		return fmt.Sprintf("%.1f GiB", float64(n)/float64(GiB))
+	case n >= MiB:
+		return fmt.Sprintf("%.1f MiB", float64(n)/float64(MiB))
+	case n >= KiB:
+		return fmt.Sprintf("%.1f KiB", float64(n)/float64(KiB))
+	default:
+		return fmt.Sprintf("%d B", n)
+	}
 }
 
 func prefix(s string, n int) string {
@@ -126,4 +186,24 @@ func prefix(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// envSuggestsKittyHost mirrors fanart.hostKittyCapable for the
+// doctor message about tmux passthrough. Duplicated rather than
+// exported because it's only useful here and pulling it into the
+// fanart public API would invite drift.
+func envSuggestsKittyHost() bool {
+	if os.Getenv("KITTY_WINDOW_ID") != "" {
+		return true
+	}
+	if os.Getenv("GHOSTTY_RESOURCES_DIR") != "" || os.Getenv("GHOSTTY_BIN_DIR") != "" {
+		return true
+	}
+	if tp := os.Getenv("TERM_PROGRAM"); tp == "ghostty" || tp == "WezTerm" {
+		return true
+	}
+	if strings.Contains(os.Getenv("TERM"), "kitty") {
+		return true
+	}
+	return false
 }
