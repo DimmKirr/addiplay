@@ -82,28 +82,57 @@ func (m Mode) String() string {
 //	ADDIPLAY_FORCE_FANART=1    — bypass tmux Kitty-stripping detection
 func DetectMode() Mode {
 	if os.Getenv("ADDIPLAY_NO_FANART") != "" {
+		dlog("DetectMode: ADDIPLAY_NO_FANART set → ModeNone")
 		return ModeNone
 	}
 	switch strings.ToLower(os.Getenv("ADDIPLAY_FANART_MODE")) {
 	case "ascii":
 		if hasTruecolorPassthrough() {
+			dlog("DetectMode: ADDIPLAY_FANART_MODE=ascii, truecolor=true → ModeASCII")
 			return ModeASCII
 		}
+		dlog("DetectMode: ADDIPLAY_FANART_MODE=ascii, truecolor=false → ModeNone")
 		return ModeNone
 	case "kitty":
+		dlog("DetectMode: ADDIPLAY_FANART_MODE=kitty (forced) → ModeKitty")
 		return ModeKitty
 	case "none":
+		dlog("DetectMode: ADDIPLAY_FANART_MODE=none → ModeNone")
 		return ModeNone
 	}
 
-	// Auto-pick: Kitty when supported AND not being stripped by tmux;
-	// else ASCII when truecolor passes through; else nothing.
-	if hostKittyCapable() && !tmuxStripsGraphics() {
+	caps := Probe()
+	forceFanart := os.Getenv("ADDIPLAY_FORCE_FANART") != ""
+
+	dlog("DetectMode: TERM=%q TERM_PROGRAM=%q GHOSTTY_RESOURCES_DIR=%q KITTY_WINDOW_ID=%q COLORTERM=%q ADDIPLAY_FORCE_FANART=%t",
+		os.Getenv("TERM"), os.Getenv("TERM_PROGRAM"), os.Getenv("GHOSTTY_RESOURCES_DIR"),
+		os.Getenv("KITTY_WINDOW_ID"), os.Getenv("COLORTERM"), forceFanart)
+	dlog("DetectMode: probe.KittyGraphics=%t probe.InTmux=%t probe.TmuxPassthrough=%t probe.Truecolor=%t probe.ProbeRan=%t probe.Err=%v",
+		caps.KittyGraphics, caps.InTmux, caps.TmuxPassthrough, caps.Truecolor, caps.ProbeRan, caps.ProbeError)
+
+	// Kitty is usable when:
+	//   - the probe got an OK back (covers every modern terminal — direct
+	//     or inside a tmux that has passthrough on), OR
+	//   - the probe didn't run (no /dev/tty, etc.) BUT env suggests a
+	//     Kitty-capable host AND we're not behind a tmux that would
+	//     strip the escapes, OR
+	//   - the probe ran but timed out inside tmux with passthrough on AND
+	//     env says the host is Kitty-capable (the round-trip through
+	//     container/tmux layers often exceeds the 200ms deadline), OR
+	//   - the user has explicitly forced Kitty via ADDIPLAY_FORCE_FANART
+	kittyOK := caps.KittyGraphics ||
+		forceFanart ||
+		(!caps.ProbeRan && hostKittyCapable() && (!caps.InTmux || caps.TmuxPassthrough)) ||
+		(caps.InTmux && caps.TmuxPassthrough && hostKittyCapable())
+	if kittyOK {
+		dlog("DetectMode: → ModeKitty (probe=%t force=%t)", caps.KittyGraphics, forceFanart)
 		return ModeKitty
 	}
-	if hasTruecolorPassthrough() {
+	if caps.Truecolor {
+		dlog("DetectMode: → ModeASCII (kitty unavailable, truecolor=true)")
 		return ModeASCII
 	}
+	dlog("DetectMode: → ModeNone (no viable mode)")
 	return ModeNone
 }
 
@@ -394,13 +423,16 @@ func Encode(imgBytes []byte, cols, rows int, id uint32) string {
 		if end >= len(b64) {
 			more = 0
 		}
+		// Per-chunk tmux wrap (DIMM-420 #2). See tmuxwrap.go.
+		var raw string
 		if i == 0 {
 			// First chunk: full param set. a=T = transmit AND display now,
 			// f=100 = PNG (Kitty auto-detects JPEG too), q=2 = silent.
-			fmt.Fprintf(&out, "\x1b_Ga=T,f=100,i=%d,c=%d,r=%d,q=2,m=%d;%s\x1b\\", id, cols, rows, more, chunk)
+			raw = fmt.Sprintf("\x1b_Ga=T,f=100,i=%d,c=%d,r=%d,q=2,m=%d;%s\x1b\\", id, cols, rows, more, chunk)
 		} else {
-			fmt.Fprintf(&out, "\x1b_Gm=%d;%s\x1b\\", more, chunk)
+			raw = fmt.Sprintf("\x1b_Gm=%d;%s\x1b\\", more, chunk)
 		}
+		out.WriteString(tmuxWrap(raw))
 	}
 	return out.String()
 }

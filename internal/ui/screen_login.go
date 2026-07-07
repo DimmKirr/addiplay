@@ -8,7 +8,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
 	"github.com/dimmkirr/addiplay/internal/creds"
@@ -16,7 +15,7 @@ import (
 
 // Login overlay messages.
 type (
-	loginSuccessMsg struct{ creds creds.Creds }
+	loginSuccessMsg struct{ creds creds.Session }
 	loginErrorMsg   struct{ err error }
 )
 
@@ -24,6 +23,8 @@ type (
 // flips focus to the login overlay. Called from NewModel (initial state)
 // and from auth failures (channels/stream 401).
 func (m Model) initLoginInputs(initial bool) Model {
+	dlog("initLoginInputs(initial=%t) called: prev_focus=%d prev_creds.email_set=%t prev_creds.listen_key_len=%d prev_creds.session_key_len=%d",
+		initial, m.focus, m.creds.Email != "", len(m.creds.ListenKey), len(m.creds.SessionKey))
 	email := textinput.New()
 	email.Placeholder = "you@example.com"
 	email.CharLimit = 80
@@ -137,7 +138,9 @@ func (m Model) refocusLogin() Model {
 func (m Model) submitLogin() (tea.Model, tea.Cmd) {
 	email := strings.TrimSpace(m.loginEmail.Value())
 	password := m.loginPassword.Value()
+	dlog("submitLogin: email_len=%d password_len=%d", len(email), len(password))
 	if email == "" || password == "" {
+		dlog("submitLogin: empty field — refusing to submit")
 		m.loginError = "email and password are required"
 		return m, nil
 	}
@@ -145,23 +148,18 @@ func (m Model) submitLogin() (tea.Model, tea.Cmd) {
 	m.loginError = ""
 	client := m.client
 	parent := m.ctx
+	network := m.currentNetwork
 	return m, func() tea.Msg {
 		ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 		defer cancel()
-		// AudioClient is the UI's narrow interface and doesn't expose
-		// Authenticate; we need the concrete *audioaddict.Client for that.
-		// Production passes one in via cmd/tui.go, and the demo client
-		// embeds the same surface — see if we can type-assert; otherwise
-		// fall back to a fresh client (auth is the same against any
-		// network's /members/authenticate).
-		var aac *audioaddict.Client
-		if c, ok := client.(*audioaddict.Client); ok {
-			aac = c
-		} else {
-			aac = audioaddict.NewClient()
-		}
-		member, err := aac.Authenticate(ctx, email, password)
+		dlog("submitLogin cmd: calling Authenticate (network=%s email_len=%d password_len=%d)", network, len(email), len(password))
+		// Authenticate now owns persistence: on success it calls
+		// SetCreds on the client AND writes to the configured Storage.
+		// No more manual creds.Save here.
+		member, err := client.Authenticate(ctx, email, password, network)
 		if err != nil {
+			dlog("submitLogin cmd: Authenticate FAIL err=%v (errors.Is ErrAuth=%t ErrOAuthOnly=%t)",
+				err, errors.Is(err, audioaddict.ErrAuth), errors.Is(err, audioaddict.ErrOAuthOnly))
 			if errors.Is(err, audioaddict.ErrOAuthOnly) {
 				return loginErrorMsg{err: errors.New("this account uses social sign-in; set a password at audioaddict.com/account")}
 			}
@@ -170,11 +168,9 @@ func (m Model) submitLogin() (tea.Model, tea.Cmd) {
 			}
 			return loginErrorMsg{err: err}
 		}
-		c := creds.Creds{Email: member.Email, ListenKey: member.ListenKey, Premium: member.Premium}
-		if err := creds.Save(c); err != nil {
-			return loginErrorMsg{err: err}
-		}
-		return loginSuccessMsg{creds: c}
+		dlog("submitLogin cmd: Authenticate OK id=%d email_set=%t listen_key_len=%d session_key_len=%d premium=%t",
+			member.ID, member.Email != "", len(member.ListenKey), len(member.SessionKey), member.Premium)
+		return loginSuccessMsg{creds: member}
 	}
 }
 
@@ -221,13 +217,5 @@ func (m Model) viewLogin() string {
 	}
 	rows = append(rows, "", hint)
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(m.theme.Accent).
-		Padding(1, 3).
-		Render(strings.Join(rows, "\n"))
-
-	return m.st.app.Width(m.width).Height(m.height).Render(
-		lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box),
-	)
+	return m.renderCenteredPopover(strings.Join(rows, "\n"), 3, 1)
 }

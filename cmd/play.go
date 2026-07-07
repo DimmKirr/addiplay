@@ -37,6 +37,13 @@ func runHeadlessPlay(ctx context.Context, target string, out io.Writer) error {
 	}
 	defer closeDbg()
 
+	// Best-effort startup cache sweep — same rationale as runTUI.
+	if dbg != nil {
+		sweepCacheBestEffort(dbg.Writer)
+	} else {
+		sweepCacheBestEffort(nil)
+	}
+
 	got, err := creds.Load()
 	if errors.Is(err, creds.ErrNotLoggedIn) {
 		fmt.Fprintln(os.Stderr, "not signed in — launch `addiplay` and use the TUI login overlay, then retry")
@@ -46,8 +53,9 @@ func runHeadlessPlay(ctx context.Context, target string, out io.Writer) error {
 		return err
 	}
 
-	client := audioaddict.NewClient()
-	streamURL, err := client.StreamURL(ctx, network, channel, got.ListenKey, audioaddict.QualityPremiumHigh)
+	client := audioaddict.NewClient(creds.DefaultStorage)
+	client.SetCreds(got)
+	streamURL, err := client.StreamURL(ctx, network, channel, audioaddict.QualityPremiumHigh)
 	if err != nil {
 		return fmt.Errorf("resolve stream url: %w", err)
 	}

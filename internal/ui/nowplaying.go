@@ -99,6 +99,8 @@ func preferredFanartSource(track audioaddict.Track, ch audioaddict.Channel, mode
 // instead of an empty pane.
 func (m *Model) refreshFanart(track audioaddict.Track, ch audioaddict.Channel) tea.Cmd {
 	mode := fanart.DetectMode()
+	dlog("refreshFanart: mode=%s track.ArtURL=%q ch.Key=%q ch.AssetURL=%q",
+		mode, track.ArtURL, ch.Key, ch.AssetURL)
 	if mode == fanart.ModeNone {
 		m.fanartEscape = ""
 		m.fanartSourceURL = ""
@@ -106,13 +108,28 @@ func (m *Model) refreshFanart(track audioaddict.Track, ch audioaddict.Channel) t
 	}
 	src := preferredFanartSource(track, ch, mode)
 	if src == "" {
-		// Genuinely nothing to show — clear so the placeholder takes over.
+		dlog("refreshFanart: no source URL — clearing")
 		m.fanartEscape = ""
 		m.fanartSourceURL = ""
 		return nil
 	}
+	dlog("refreshFanart: src=%q currentSrc=%q hasEscape=%t", src, m.fanartSourceURL, m.fanartEscape != "")
 	if src == m.fanartSourceURL && m.fanartEscape != "" {
 		return nil // already showing this exact art
+	}
+	// Channel-switch clear (DIMM-420 #1): when streamPlayingMsg fires on
+	// a different channel it calls refreshFanart with an empty Track. If
+	// we leave the previous channel/track's escape in place AND the new
+	// fetch fails, the user keeps seeing the WRONG channel's art forever.
+	// Detect this case (empty track + changing source) and drop the stale
+	// escape so a failed fetch degrades to the placeholder.
+	//
+	// Track-update within the same channel (track is NOT empty) still
+	// keeps the prior escape so the user never sees a placeholder flash
+	// when a new song begins — that's the no-flash invariant locked by
+	// TestRefreshFanart_doesNotClearStaleEscapeMidLoad.
+	if track.ID == 0 && track.ArtURL == "" {
+		m.fanartEscape = ""
 	}
 	m.fanartSourceURL = src
 	// Stable Kitty image id (see comment on nowPlayingFanartID). DO NOT
@@ -144,8 +161,11 @@ func (m Model) renderNowPlaying(w, h int) string {
 	// placeholder so the pane geometry stays stable across both states.
 	image := m.fanartEscape
 	if image == "" {
+		dlog("renderNowPlaying: no fanartEscape — using placeholder (w=%d h=%d)", w, h)
 		image = fanart.Placeholder(fanartCols, fanartRows/2,
 			string(m.theme.BGAlt), string(m.theme.Accent))
+	} else {
+		dlog("renderNowPlaying: painting fanartEscape len=%d (w=%d h=%d)", len(image), w, h)
 	}
 	// Wrap in a thin outline so the album cover reads as a distinct
 	// container instead of bleeding into the rest of the pane. The
@@ -183,11 +203,11 @@ func (m Model) renderNowPlaying(w, h int) string {
 		trackBlock = m.st.muted.Render("loading…")
 	case m.currentTrack.Artist != "" || m.currentTrack.Title != "":
 		trackBlock = lipgloss.JoinVertical(lipgloss.Left,
-			m.st.nowPlaying.Bold(true).Render(m.currentTrack.Artist),
+			m.st.nowPlaying.Bold(true).Render(m.currentTrack.Artist+heartGlyph(m)),
 			m.st.muted.Padding(0, 1).Render(m.currentTrack.Title),
 		)
 	case m.currentTrack.Track != "":
-		trackBlock = m.st.nowPlaying.Render(m.currentTrack.Track)
+		trackBlock = m.st.nowPlaying.Render(m.currentTrack.Track + heartGlyph(m))
 	default:
 		trackBlock = m.st.muted.Padding(0, 1).Render("(no track info)")
 	}
@@ -200,6 +220,34 @@ func (m Model) renderNowPlaying(w, h int) string {
 	}
 	rows = append(rows, trackBlock)
 	return pane.Render(lipgloss.JoinVertical(lipgloss.Left, rows...))
+}
+
+// heartGlyph returns the leading-space-prefixed vote indicator for the
+// currently-playing track. The three glyphs come from a single
+// `IconSet` (see icons.go) so they render at consistent metrics
+// regardless of vote state — historically we used U+2665 / U+2661 /
+// U+2298 which were sourced from three different fallback fonts and
+// jittered visibly when the user toggled the vote. Default set is
+// Nerd Font; users without one can `export ADDIPLAY_ICONS=unicode`.
+//
+// Empty when there is no real track (ID == 0 — ad break / show
+// without ID). Liked and disliked are mutually exclusive (DIMM-382);
+// if both flags ever desync, disliked wins in render so the user
+// sees the more recent action.
+func heartGlyph(m Model) string {
+	if m.currentTrack.ID == 0 {
+		return ""
+	}
+	icons := Icons()
+	if m.dislikedTracks[m.currentTrack.ID] {
+		// Inline error-color style — the `toast` style has padding +
+		// background and would render as a chip instead of a glyph.
+		return " " + lipgloss.NewStyle().Foreground(m.theme.Error).Render(icons.HeartBroken)
+	}
+	if m.likedTracks[m.currentTrack.ID] {
+		return " " + m.st.star.Render(icons.HeartFilled)
+	}
+	return " " + m.st.muted.Render(icons.HeartOutline)
 }
 
 // truncateLine clamps s to maxWidth visible columns, appending "…" if cut.

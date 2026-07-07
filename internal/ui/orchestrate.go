@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,7 +22,7 @@ type (
 	playerErrorMsg    struct{ err error }
 	playerStateMsg    struct{ state player.State }
 	channelsLoadedMsg struct{ channels []audioaddict.Channel }
-	channelsErrorMsg  struct {
+	channelsErrorMsg struct {
 		err          error
 		unauthorized bool
 	}
@@ -30,8 +31,9 @@ type (
 		channel audioaddict.Channel
 	}
 	streamErrorMsg struct {
-		err          error
-		unauthorized bool
+		err            error
+		unauthorized   bool
+		listenKeyDead  bool // true on ErrListenKeyRejected — needs full re-auth
 	}
 	trackUpdateMsg struct {
 		channelID int64
@@ -47,6 +49,17 @@ type (
 		err         error
 	}
 
+	// trackVoteLoadedMsg carries the result of looking up the current
+	// user's vote state for a track via FetchTrack + bloom-filter check.
+	// Only emitted when there's a non-zero answer (liked or disliked);
+	// neutral results don't need a message because the maps are already
+	// keyed by "absent = neutral".
+	trackVoteLoadedMsg struct {
+		trackID  int64
+		liked    bool
+		disliked bool
+	}
+
 	// channelThumbReadyMsg carries a fetched-and-encoded ASCII thumbnail
 	// for one channel's left-of-card swatch. key == channel.Key (not ID:
 	// IDs differ per network but Key is stable within a network and the
@@ -54,7 +67,71 @@ type (
 	// Empty escape signals a fetch error; the handler removes the in-
 	// flight marker so a later scroll can retry.
 	channelThumbReadyMsg struct{ key, escape string }
+
+	// routineReadyMsg carries the initial batch of tracks for per-track mode.
+	routineReadyMsg struct {
+		network string
+		channel audioaddict.Channel
+		tracks  []audioaddict.RoutineTrack
+	}
+
+	// trackAdvancedMsg is emitted when the queue auto-advances to the next
+	// track (end-of-file in per-track mode).
+	trackAdvancedMsg struct {
+		network      string
+		channel      audioaddict.Channel
+		routineTrack audioaddict.RoutineTrack
+	}
+	trackAdvanceErrMsg struct{ err error }
+
+	// skipOKMsg is dispatched after a successful SkipTrack + re-tune.
+	// The handler clears skipInFlight and shows remaining skips.
+	skipOKMsg struct {
+		network        string
+		channel        audioaddict.Channel
+		skipsRemaining int
+		routineTrack   *audioaddict.RoutineTrack
+	}
+	// skipErrMsg surfaces a skip-API or re-tune failure.
+	skipErrMsg struct {
+		err            error
+		sessionInvalid bool
+	}
+
+	// voteOKMsg is dispatched after a successful LikeTrack/DislikeTrack/
+	// UnlikeTrack call. The handler sets the matching map and clears the
+	// other — `liked` and `disliked` are mutually exclusive; both false
+	// means the vote was cleared (DELETE).
+	voteOKMsg struct {
+		trackID  int64
+		liked    bool
+		disliked bool
+	}
+	// voteErrMsg surfaces a vote-API failure. `sessionInvalid=true` means
+	// the X-Session-Key was rejected (ErrSessionInvalid) — the UI pops
+	// the login overlay AND remembers the attempted op as a pendingVote
+	// so it replays on the next loginSuccessMsg. Generic `unauthorized`
+	// kept for back-compat with the channels/stream paths.
+	voteErrMsg struct {
+		err            error
+		unauthorized   bool
+		sessionInvalid bool
+		// Original op — replayed verbatim after re-auth.
+		network   string
+		trackID   int64
+		channelID int64
+		dir       voteDirection
+	}
 )
+
+// pendingVote captures a vote attempt that bounced off ErrSessionInvalid,
+// so loginSuccessMsg can replay it without the user pressing `l` twice.
+type pendingVote struct {
+	network   string
+	trackID   int64
+	channelID int64
+	dir       voteDirection
+}
 
 // -----------------------------------------------------------------------------
 // Commands
@@ -100,12 +177,31 @@ func loadChannelsCmd(ctx context.Context, client AudioClient, network string) te
 	}
 }
 
-// playSelectedCmd resolves a stream URL and tells the player to play it.
-func playSelectedCmd(ctx context.Context, client AudioClient, p AudioPlayer, network string, ch audioaddict.Channel, listenKey string) tea.Cmd {
+// playSelectedCmd resolves audio for a channel and tells the player to play it.
+// Tries per-track on-demand mode first (channel_routine API); falls back to
+// live radio stream when audio_token is absent or the routine fails.
+func playSelectedCmd(ctx context.Context, client AudioClient, p AudioPlayer, network string, ch audioaddict.Channel) tea.Cmd {
 	return func() tea.Msg {
-		url, err := client.StreamURL(ctx, network, ch.Key, listenKey, audioaddict.QualityPremiumHigh)
+		tracks, err := client.FetchRoutine(ctx, network, ch.ID, true)
+		if err == nil && len(tracks) > 0 {
+			audioURL := tracks[0].AudioURL()
+			if audioURL != "" {
+				dlog("playSelectedCmd: per-track mode — %d tracks, playing first (%s)", len(tracks), tracks[0].Track)
+				if err := p.Play(audioURL); err != nil {
+					return streamErrorMsg{err: err}
+				}
+				return routineReadyMsg{network: network, channel: ch, tracks: tracks}
+			}
+		}
+		dlog("playSelectedCmd: falling back to live stream (routine err=%v tracks=%d)", err, len(tracks))
+
+		url, err := client.StreamURL(ctx, network, ch.Key, audioaddict.QualityPremiumHigh)
 		if err != nil {
-			return streamErrorMsg{err: err, unauthorized: errors.Is(err, audioaddict.ErrUnauthorized)}
+			return streamErrorMsg{
+				err:           err,
+				unauthorized:  errors.Is(err, audioaddict.ErrUnauthorized),
+				listenKeyDead: errors.Is(err, audioaddict.ErrListenKeyRejected),
+			}
 		}
 		if err := p.Play(url); err != nil {
 			return streamErrorMsg{err: err}
@@ -148,6 +244,190 @@ func tickTrackCmd(parent context.Context, client AudioClient, network string, ch
 		}
 		return trackUpdateMsg{channelID: channelID, track: track, gen: gen}
 	})
+}
+
+// voteDirection picks which AudioAddict vote endpoint a voteCmd hits.
+// Maps 1:1 onto the three accepted server values (`up`/`down`/`delete`).
+type voteDirection int
+
+const (
+	voteUp    voteDirection = iota // POST .../vote/<chid>/up
+	voteDown                       // POST .../vote/<chid>/down
+	voteClear                      // DELETE .../vote/<chid>
+)
+
+// voteCmd issues the like/dislike/clear request against the AudioAddict
+// API. session_key is owned by the Client now — no caller threads it.
+// The caller sets voteInFlight before dispatch and clears it on the
+// resulting voteOKMsg/voteErrMsg. The voteErrMsg carries the original
+// op (network/trackID/channelID/dir) so a session-invalid error can be
+// stashed as pendingVote and replayed after re-auth.
+func voteCmd(ctx context.Context, client AudioClient, network string, trackID, channelID int64, dir voteDirection) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		switch dir {
+		case voteUp:
+			err = client.LikeTrack(ctx, network, trackID, channelID)
+		case voteDown:
+			err = client.DislikeTrack(ctx, network, trackID, channelID)
+		case voteClear:
+			err = client.UnlikeTrack(ctx, network, trackID, channelID)
+		}
+		if err != nil {
+			return voteErrMsg{
+				err:            err,
+				unauthorized:   errors.Is(err, audioaddict.ErrUnauthorized),
+				sessionInvalid: errors.Is(err, audioaddict.ErrSessionInvalid),
+				network:        network,
+				trackID:        trackID,
+				channelID:      channelID,
+				dir:            dir,
+			}
+		}
+		return voteOKMsg{
+			trackID:  trackID,
+			liked:    dir == voteUp,
+			disliked: dir == voteDown,
+		}
+	}
+}
+
+// skipTrackCmd posts the skip event and advances to the next track. In
+// per-track mode (queue != nil), it plays the next queued track directly.
+// In live-stream mode, it reconnects to the broadcast (which may or may
+// not have rotated).
+func skipTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, network string, trackID, channelID int64, trackLength, skippedAt int, ch audioaddict.Channel, queue *audioaddict.TrackQueue) tea.Cmd {
+	return func() tea.Msg {
+		dlog("skipTrackCmd: posting skip_events track=%d channel=%d net=%s len=%d at=%d queue=%t",
+			trackID, channelID, network, trackLength, skippedAt, queue != nil)
+		sr, err := client.SkipTrack(ctx, network, trackID, channelID, trackLength, skippedAt)
+		if err != nil {
+			dlog("skipTrackCmd: SkipTrack FAIL err=%v", err)
+			return skipErrMsg{
+				err:            err,
+				sessionInvalid: errors.Is(err, audioaddict.ErrSessionInvalid),
+			}
+		}
+		remaining := 0
+		if sr != nil {
+			remaining = sr.SkipsRemaining
+		}
+		dlog("skipTrackCmd: skip recorded — skips_remaining=%d", remaining)
+
+		if queue != nil {
+			rt, ok := queue.Next()
+			if !ok {
+				dlog("skipTrackCmd: queue exhausted — refilling")
+				tracks, ferr := client.FetchRoutine(ctx, network, channelID, false)
+				if ferr != nil {
+					dlog("skipTrackCmd: FetchRoutine refill FAIL err=%v", ferr)
+					return skipErrMsg{err: ferr}
+				}
+				queue.Append(tracks)
+				rt, ok = queue.Next()
+				if !ok {
+					dlog("skipTrackCmd: routine returned no tracks after refill")
+					return skipErrMsg{err: fmt.Errorf("no tracks available")}
+				}
+			}
+			audioURL := rt.AudioURL()
+			if audioURL == "" {
+				dlog("skipTrackCmd: track %d has no audio URL", rt.TrackID)
+				return skipErrMsg{err: fmt.Errorf("track has no audio URL")}
+			}
+			dlog("skipTrackCmd: playing next track %d (%s)", rt.TrackID, rt.Track)
+			if err := p.Play(audioURL); err != nil {
+				dlog("skipTrackCmd: p.Play FAIL err=%v", err)
+				return skipErrMsg{err: err}
+			}
+			return skipOKMsg{network: network, channel: ch, skipsRemaining: remaining, routineTrack: &rt}
+		}
+
+		dlog("skipTrackCmd: live-stream mode — reconnecting to %s/%s", network, ch.Key)
+		url, err := client.StreamURL(ctx, network, ch.Key, audioaddict.QualityPremiumHigh)
+		if err != nil {
+			dlog("skipTrackCmd: StreamURL FAIL err=%v", err)
+			return skipErrMsg{err: err}
+		}
+		if err := p.Play(url); err != nil {
+			dlog("skipTrackCmd: p.Play FAIL err=%v", err)
+			return skipErrMsg{err: err}
+		}
+		dlog("skipTrackCmd: p.Play() OK — re-tuned to %s/%s", network, ch.Key)
+		return skipOKMsg{network: network, channel: ch, skipsRemaining: remaining}
+	}
+}
+
+// advanceTrackCmd auto-advances to the next track in the queue when the
+// current per-track audio file finishes (mpv goes idle). Refills the queue
+// from the routine API when exhausted.
+func advanceTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, network string, ch audioaddict.Channel, queue *audioaddict.TrackQueue) tea.Cmd {
+	return func() tea.Msg {
+		rt, ok := queue.Next()
+		if !ok {
+			dlog("advanceTrackCmd: queue exhausted — refilling")
+			tracks, err := client.FetchRoutine(ctx, network, ch.ID, false)
+			if err != nil {
+				dlog("advanceTrackCmd: FetchRoutine FAIL err=%v", err)
+				return trackAdvanceErrMsg{err: err}
+			}
+			queue.Append(tracks)
+			rt, ok = queue.Next()
+			if !ok {
+				return trackAdvanceErrMsg{err: fmt.Errorf("no tracks available")}
+			}
+		}
+		audioURL := rt.AudioURL()
+		if audioURL == "" {
+			return trackAdvanceErrMsg{err: fmt.Errorf("track has no audio URL")}
+		}
+		dlog("advanceTrackCmd: playing track %d (%s)", rt.TrackID, rt.Track)
+		if err := p.Play(audioURL); err != nil {
+			return trackAdvanceErrMsg{err: err}
+		}
+		return trackAdvancedMsg{network: network, channel: ch, routineTrack: rt}
+	}
+}
+
+// clearStatusInfoMsg clears the transient green info bar after a delay.
+type clearStatusInfoMsg struct{}
+
+func clearStatusInfoCmd() tea.Cmd {
+	return tea.Tick(5*time.Second, func(_ time.Time) tea.Msg {
+		return clearStatusInfoMsg{}
+	})
+}
+
+// logoutConfirmTimeoutMsg is emitted ~3s after the FIRST `L` press
+// (DIMM-393). The handler clears `m.pendingLogout` so the toast doesn't
+// lie and a future `L` requires its own fresh confirmation.
+type logoutConfirmTimeoutMsg struct{}
+
+// logoutConfirmTimeoutCmd schedules the message.
+func logoutConfirmTimeoutCmd() tea.Cmd {
+	return tea.Tick(3*time.Second, func(_ time.Time) tea.Msg {
+		return logoutConfirmTimeoutMsg{}
+	})
+}
+
+// loadVoteStateCmd fetches the track's bloom-filter votes block and
+// emits trackVoteLoadedMsg with the user's current up/down state. On
+// fetch error, returns nil (silent failure — the heart just stays
+// neutral instead of toasting a confusing error).
+func loadVoteStateCmd(parent context.Context, client AudioClient, network string, trackID, memberID int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+		defer cancel()
+		info, err := client.FetchTrack(ctx, network, trackID)
+		if err != nil || info == nil {
+			return nil
+		}
+		return trackVoteLoadedMsg{
+			trackID:  trackID,
+			liked:    info.Votes.WhoUpvoted.Contains(memberID),
+			disliked: info.Votes.WhoDownvoted.Contains(memberID),
+		}
+	}
 }
 
 // switchNetworkCmd emits a synchronous network switch.

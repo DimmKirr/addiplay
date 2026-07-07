@@ -183,6 +183,8 @@ type styles struct {
 	statusBar   lipgloss.Style
 	keyHint     lipgloss.Style
 	toast       lipgloss.Style
+	warnToast   lipgloss.Style
+	infoBar     lipgloss.Style
 	accentBlock lipgloss.Style
 	muted       lipgloss.Style
 	star        lipgloss.Style
@@ -202,6 +204,8 @@ func newStyles(t Theme) styles {
 		statusBar:   lipgloss.NewStyle().Background(t.BGAlt).Foreground(t.FG).Padding(0, 1),
 		keyHint:     lipgloss.NewStyle().Foreground(t.FGMuted),
 		toast:       lipgloss.NewStyle().Background(t.Error).Foreground(t.FG).Padding(0, 1).Bold(true),
+		warnToast:   lipgloss.NewStyle().Background(t.Warn).Foreground(t.BG).Padding(0, 1).Bold(true),
+		infoBar:     lipgloss.NewStyle().Foreground(t.Success).Bold(true),
 		accentBlock: lipgloss.NewStyle().Background(t.Accent).Foreground(t.BG).Padding(0, 1).Bold(true),
 		muted:       lipgloss.NewStyle().Foreground(t.FGMuted),
 		star:        lipgloss.NewStyle().Foreground(t.Pop),

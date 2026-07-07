@@ -294,7 +294,11 @@ func (p *Player) handleMessage(msg map[string]any) {
 		// "reason" can be "error" or "eof"
 		if r, _ := msg["reason"].(string); r == "error" {
 			p.setState(StateError, "", fmt.Errorf("mpv: stream error"))
-		} else {
+		} else if p.State() != StateLoading {
+			// Skip the idle transition if we're already loading the next
+			// track — end-file for the outgoing track arrives after the
+			// new loadfile command, and going idle here would trigger a
+			// spurious auto-advance.
 			p.setState(StateIdle, "", nil)
 		}
 	case "idle":

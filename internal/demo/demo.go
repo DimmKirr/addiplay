@@ -27,8 +27,8 @@ var fixturesFS embed.FS
 
 // Creds returns a synthetic logged-in identity good enough for the TUI to
 // boot without hitting the real keyring.
-func Creds() creds.Creds {
-	return creds.Creds{Email: "demo@addiplay", ListenKey: "demo-listen-key", Premium: true}
+func Creds() creds.Session {
+	return creds.Session{Email: "demo@addiplay", ListenKey: "demo-listen-key", SessionKey: "demo-session-key", Premium: true}
 }
 
 // -----------------------------------------------------------------------------
@@ -40,6 +40,12 @@ func Creds() creds.Creds {
 type FakeClient struct {
 	channelsByNetwork map[string][]audioaddict.Channel
 	trackByChannelID  map[int64]string
+
+	// session mirrors the real Client's auth state for parity with the
+	// production AudioClient interface — tests can assert SetCreds was
+	// called with the right values.
+	sessionMu sync.RWMutex
+	session   creds.Session
 }
 
 // NewClient loads the embedded fixtures.
@@ -83,7 +89,7 @@ func (c *FakeClient) Channels(_ context.Context, network string) ([]audioaddict.
 }
 
 // StreamURL implements ui.AudioClient.
-func (c *FakeClient) StreamURL(_ context.Context, network, channelKey, _ string, _ audioaddict.Quality) (string, error) {
+func (c *FakeClient) StreamURL(_ context.Context, network, channelKey string, _ audioaddict.Quality) (string, error) {
 	chs, ok := c.channelsByNetwork[network]
 	if !ok {
 		return "", audioaddict.ErrNotFound
@@ -109,6 +115,79 @@ func (c *FakeClient) CurrentlyPlaying(_ context.Context, _ string, channelID int
 		t.Title = b
 	}
 	return t, nil
+}
+
+// Authenticate implements ui.AudioClient. Returns a canned demo Member
+// that mirrors the demo creds (demo.Creds()), so the login overlay flow
+// can be exercised in demo / screencast / test mode without hitting the
+// real AudioAddict API. Any non-empty email/password is accepted. Also
+// mirrors the real Client's side effects (SetCreds + persistence-skip).
+func (c *FakeClient) Authenticate(_ context.Context, email, _, _ string) (audioaddict.Member, error) {
+	if email == "" {
+		return audioaddict.Member{}, audioaddict.ErrAuth
+	}
+	m := audioaddict.Member{
+		ID:         1,
+		Email:      email,
+		ListenKey:  "demo-listen-key",
+		SessionKey: "demo-session-key",
+		Premium:    true,
+	}
+	c.SetCreds(m)
+	return m, nil
+}
+
+// LikeTrack implements ui.AudioClient. Demo mode silently accepts likes —
+// useful so the heart glyph still toggles in screencast recordings without
+// hitting the real API.
+func (c *FakeClient) LikeTrack(_ context.Context, _ string, _, _ int64) error {
+	return nil
+}
+
+// DislikeTrack mirrors LikeTrack for the dislike (DIMM-382) path.
+func (c *FakeClient) DislikeTrack(_ context.Context, _ string, _, _ int64) error {
+	return nil
+}
+
+// UnlikeTrack mirrors LikeTrack.
+func (c *FakeClient) UnlikeTrack(_ context.Context, _ string, _, _ int64) error {
+	return nil
+}
+
+// SkipTrack implements ui.AudioClient. Demo mode returns a stub response.
+func (c *FakeClient) SkipTrack(_ context.Context, _ string, _, _ int64, _, _ int) (*audioaddict.SkipResponse, error) {
+	return &audioaddict.SkipResponse{SkipsRemaining: 5}, nil
+}
+
+func (c *FakeClient) FetchRoutine(_ context.Context, _ string, _ int64, _ bool) ([]audioaddict.RoutineTrack, error) {
+	return nil, fmt.Errorf("demo: routine not supported")
+}
+
+// FetchTrack implements ui.AudioClient. Demo mode returns a stub with no
+// vote state — bloom filters are nil so Contains() returns false and
+// every track renders as neutral.
+func (c *FakeClient) FetchTrack(_ context.Context, _ string, trackID int64) (*audioaddict.TrackInfo, error) {
+	return &audioaddict.TrackInfo{ID: trackID}, nil
+}
+
+// SetCreds implements ui.AudioClient. Demo mode just remembers the value.
+func (c *FakeClient) SetCreds(s creds.Session) {
+	c.sessionMu.Lock()
+	c.session = s
+	c.sessionMu.Unlock()
+}
+
+// Creds implements ui.AudioClient.
+func (c *FakeClient) Creds() creds.Session {
+	c.sessionMu.RLock()
+	defer c.sessionMu.RUnlock()
+	return c.session
+}
+
+// Logout implements ui.AudioClient.
+func (c *FakeClient) Logout() error {
+	c.SetCreds(creds.Session{})
+	return nil
 }
 
 func splitTrack(s string) (string, string, bool) {

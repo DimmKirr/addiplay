@@ -3,44 +3,177 @@ package audioaddict_test
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
+	"github.com/dimmkirr/addiplay/internal/creds"
 	"github.com/dimmkirr/addiplay/internal/testutil"
 )
 
-func TestAuthenticate_success(t *testing.T) {
-	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
-		"POST /v1/di/members/authenticate": {Body: `{
-			"id": 42,
-			"email": "test@example.com",
-			"listen_key": "abc123",
-			"user_type": "premium",
-			"subscriptions": [{"status":"active"}]
-		}`},
-	})
-	c := audioaddict.NewClient()
+// TestVote_requiresBasicAuthAndSessionKey reproduces the live-API bug
+// observed 2026-06-29: the vote endpoint returns `403 "Invalid Session"`
+// when only X-Session-Key is sent, even though the session key itself is
+// valid. The DannyBen/audio_addict Ruby gem masks this by calling
+// HTTParty's class-level `basic_auth 'streams', 'diradio'` during login,
+// which carries the Authorization header into every subsequent request.
+// AudioAddict's vote endpoint requires BOTH credentials.
+//
+// Captured from a live --debug trace at 14:23:57Z:
+//
+//	voteRequest -> POST .../tracks/.../vote/.../up session_key_len=32
+//	voteRequest <- status=403 body_preview="Invalid Session"
+//
+// This mock rejects votes lacking either credential; the test asserts
+// LikeTrack sends both.
+func TestVote_requiresBasicAuthAndSessionKey(t *testing.T) {
+	const sessionKey = "top-level-session-key-32-charsxx"
+	var (
+		gotVoteAuthOK   bool
+		gotVoteAuthUser string
+		gotVoteAuthPass string
+		gotVoteSession  string
+		gotVotePath     string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/di/member_sessions":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{
+				"key": "`+sessionKey+`",
+				"member": {
+					"id": 9999,
+					"email": "x@example.com",
+					"listen_key": "lk-24-chars-xxxxxxxxxxxx",
+					"user_type": "premium"
+				}
+			}`)
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/v1/rockradio/tracks/") && strings.HasSuffix(r.URL.Path, "/up"):
+			gotVoteAuthUser, gotVoteAuthPass, gotVoteAuthOK = r.BasicAuth()
+			gotVoteSession = r.Header.Get("X-Session-Key")
+			gotVotePath = r.URL.Path
+			// Mimic the live server: require BOTH basic auth and X-Session-Key.
+			if gotVoteAuthOK && gotVoteAuthUser == "streams" && gotVoteAuthPass == "diradio" && gotVoteSession == sessionKey {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = io.WriteString(w, "Invalid Session")
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
-	m, err := c.Authenticate(context.Background(), "test@example.com", "pw")
+	m, err := c.Authenticate(context.Background(), "x@example.com", "pw", "")
+	if err != nil {
+		t.Fatalf("Authenticate: %v", err)
+	}
+	if m.SessionKey != sessionKey {
+		t.Fatalf("SessionKey = %q, want %q (top-level key)", m.SessionKey, sessionKey)
+	}
+
+	// Authenticate has already called SetCreds(m) so the Client now
+	// holds the right session_key; LikeTrack reads it from there.
+	if err := c.LikeTrack(context.Background(), "rockradio", 627467, 222); err != nil {
+		t.Fatalf("LikeTrack: %v\n  vote path=%q\n  basic_auth_ok=%t user=%q pass=%q\n  X-Session-Key=%q",
+			err, gotVotePath, gotVoteAuthOK, gotVoteAuthUser, gotVoteAuthPass, gotVoteSession)
+	}
+}
+
+// TestAuthenticate_postsToMemberSessions verifies the FULL request shape:
+// URL, basic auth credentials, and the nested `member_session[...]` form
+// body the live API expects. Per the DannyBen/audio_addict Ruby gem
+// (`lib/audio_addict/api.rb`), the live auth endpoint is
+// `POST /v1/<network>/member_sessions` with basic auth `streams:diradio`
+// and a Rails-bracket form body. The response nests member fields under
+// a top-level `member` key and surfaces the session key as top-level `key`.
+//
+// This test replaced earlier tests that POSTed flat creds to a legacy
+// `/members/authenticate` endpoint — that path returned a listen_key but
+// no session key, which is why DIMM-381's `l` hotkey kept firing the
+// re-auth path: the SessionKey field was always empty.
+func TestAuthenticate_postsToMemberSessions(t *testing.T) {
+	var (
+		gotMethod   string
+		gotPath     string
+		gotAuthUser string
+		gotAuthPass string
+		gotAuthOK   bool
+		gotBody     string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotAuthUser, gotAuthPass, gotAuthOK = r.BasicAuth()
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"key": "sess-xyz",
+			"member": {
+				"id": 42,
+				"email": "test@example.com",
+				"listen_key": "lk-abc",
+				"user_type": "premium"
+			}
+		}`)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+
+	m, err := c.Authenticate(context.Background(), "test@example.com", "pw", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.ListenKey != "abc123" || m.Email != "test@example.com" || !m.Premium {
-		t.Errorf("got %+v", m)
+
+	if gotMethod != http.MethodPost {
+		t.Errorf("method = %q, want POST", gotMethod)
+	}
+	if gotPath != "/v1/di/member_sessions" {
+		t.Errorf("path = %q, want /v1/di/member_sessions", gotPath)
+	}
+	if !gotAuthOK || gotAuthUser != "streams" || gotAuthPass != "diradio" {
+		t.Errorf("basic auth = (%q, %q, ok=%t); want (streams, diradio, ok=true)", gotAuthUser, gotAuthPass, gotAuthOK)
+	}
+	// Rails-bracket form params survive URL encoding as %5B = '[' and %5D = ']'.
+	if !strings.Contains(gotBody, "member_session%5Busername%5D=test%40example.com") {
+		t.Errorf("body missing member_session[username]; got %q", gotBody)
+	}
+	if !strings.Contains(gotBody, "member_session%5Bpassword%5D=pw") {
+		t.Errorf("body missing member_session[password]; got %q", gotBody)
+	}
+
+	if m.ListenKey != "lk-abc" {
+		t.Errorf("ListenKey = %q, want lk-abc", m.ListenKey)
+	}
+	if m.SessionKey != "sess-xyz" {
+		t.Errorf("SessionKey = %q, want sess-xyz (top-level key)", m.SessionKey)
+	}
+	if m.Email != "test@example.com" {
+		t.Errorf("Email = %q, want test@example.com", m.Email)
+	}
+	if !m.Premium {
+		t.Errorf("Premium = false, want true (user_type=premium)")
 	}
 }
 
 func TestAuthenticate_badCreds(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
-		"POST /v1/di/members/authenticate": {Status: http.StatusUnauthorized, Body: `{"errors":["invalid"]}`},
+		"POST /v1/di/member_sessions": {Status: http.StatusUnauthorized, Body: `{"errors":["invalid"]}`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
-	_, err := c.Authenticate(context.Background(), "x", "y")
+	_, err := c.Authenticate(context.Background(), "x", "y", "")
 	if !errors.Is(err, audioaddict.ErrAuth) {
 		t.Errorf("err = %v, want ErrAuth", err)
 	}
@@ -48,15 +181,15 @@ func TestAuthenticate_badCreds(t *testing.T) {
 
 func TestAuthenticate_oauthOnly(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
-		"POST /v1/di/members/authenticate": {
+		"POST /v1/di/member_sessions": {
 			Status: http.StatusForbidden,
 			Body:   `{"errors":["this account uses Google oauth login, no password set"]}`,
 		},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
-	_, err := c.Authenticate(context.Background(), "x", "y")
+	_, err := c.Authenticate(context.Background(), "x", "y", "")
 	if !errors.Is(err, audioaddict.ErrOAuthOnly) {
 		t.Errorf("err = %v, want ErrOAuthOnly", err)
 	}
@@ -64,14 +197,161 @@ func TestAuthenticate_oauthOnly(t *testing.T) {
 
 func TestAuthenticate_emptyListenKey(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
-		"POST /v1/di/members/authenticate": {Body: `{"id":1,"email":"x@y","listen_key":""}`},
+		"POST /v1/di/member_sessions": {Body: `{"key":"sk","member":{"id":1,"email":"x@y","listen_key":""}}`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
-	_, err := c.Authenticate(context.Background(), "x", "y")
+	_, err := c.Authenticate(context.Background(), "x", "y", "")
 	if err == nil || !strings.Contains(err.Error(), "empty listen_key") {
 		t.Errorf("err = %v, want empty-listen_key error", err)
+	}
+}
+
+// TestLikeTrack_postsCorrectPathAndHeader uses a raw httptest.Server so we
+// can inspect the request method, path, and X-Session-Key header — the
+// testutil AAFixture helper only matches method+path and ignores headers.
+func TestLikeTrack_postsCorrectPathAndHeader(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotHeader string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotHeader = r.Header.Get("X-Session-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	if err := c.LikeTrack(context.Background(), "di", 42, 7); err != nil {
+		t.Fatalf("LikeTrack: %v", err)
+	}
+	if gotMethod != http.MethodPost {
+		t.Errorf("method = %q, want POST", gotMethod)
+	}
+	if gotPath != "/v1/di/tracks/42/vote/7/up" {
+		t.Errorf("path = %q, want /v1/di/tracks/42/vote/7/up", gotPath)
+	}
+	if gotHeader != "testkey" {
+		t.Errorf("X-Session-Key = %q, want testkey", gotHeader)
+	}
+}
+
+func TestUnlikeTrack_deletesCorrectPath(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotHeader string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotHeader = r.Header.Get("X-Session-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	if err := c.UnlikeTrack(context.Background(), "di", 42, 7); err != nil {
+		t.Fatalf("UnlikeTrack: %v", err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Errorf("method = %q, want DELETE", gotMethod)
+	}
+	if gotPath != "/v1/di/tracks/42/vote/7" {
+		t.Errorf("path = %q, want /v1/di/tracks/42/vote/7", gotPath)
+	}
+	if gotHeader != "testkey" {
+		t.Errorf("X-Session-Key = %q, want testkey", gotHeader)
+	}
+}
+
+func TestLikeTrack_401MapsToErrUnauthorized(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	err := c.LikeTrack(context.Background(), "di", 42, 7)
+	if !errors.Is(err, audioaddict.ErrUnauthorized) {
+		t.Errorf("err = %v, want ErrUnauthorized", err)
+	}
+}
+
+func TestDislikeTrack_postsCorrectPathAndHeader(t *testing.T) {
+	var (
+		gotMethod string
+		gotPath   string
+		gotHeader string
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotHeader = r.Header.Get("X-Session-Key")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	if err := c.DislikeTrack(context.Background(), "di", 42, 7); err != nil {
+		t.Fatalf("DislikeTrack: %v", err)
+	}
+	if gotMethod != http.MethodPost {
+		t.Errorf("method = %q, want POST", gotMethod)
+	}
+	if gotPath != "/v1/di/tracks/42/vote/7/down" {
+		t.Errorf("path = %q, want /v1/di/tracks/42/vote/7/down", gotPath)
+	}
+	if gotHeader != "testkey" {
+		t.Errorf("X-Session-Key = %q, want testkey", gotHeader)
+	}
+}
+
+func TestDislikeTrack_401MapsToErrUnauthorized(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	err := c.DislikeTrack(context.Background(), "di", 42, 7)
+	if !errors.Is(err, audioaddict.ErrUnauthorized) {
+		t.Errorf("err = %v, want ErrUnauthorized", err)
+	}
+}
+
+func TestLikeTrack_429MapsToErrRateLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := audioaddict.NewClient(nil)
+	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{SessionKey: "testkey"})
+
+	err := c.LikeTrack(context.Background(), "di", 42, 7)
+	if !errors.Is(err, audioaddict.ErrRateLimit) {
+		t.Errorf("err = %v, want ErrRateLimit", err)
 	}
 }
 
@@ -82,7 +362,7 @@ func TestChannels_success(t *testing.T) {
 			{"id":2,"key":"chillout","name":"Chillout","description":"","asset_url":""}
 		]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
 	chs, err := c.Channels(context.Background(), "di")
@@ -98,7 +378,7 @@ func TestChannels_unauthorized(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
 		"GET /v1/di/channels": {Status: http.StatusForbidden, Body: `{}`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
 	_, err := c.Channels(context.Background(), "di")
@@ -129,7 +409,7 @@ func TestCurrentlyPlaying(t *testing.T) {
 			"started": "2026-06-26T10:00:00-04:00"
 		}]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
 	tr, err := c.CurrentlyPlaying(context.Background(), "di", 1)
@@ -156,7 +436,7 @@ func TestCurrentlyPlaying_empty(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
 		"GET /v1/di/track_history/channel/1": {Body: `[]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
 	tr, err := c.CurrentlyPlaying(context.Background(), "di", 1)
@@ -182,7 +462,7 @@ func TestCurrentlyPlaying_showFallback(t *testing.T) {
 			"art_url": ""
 		}]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
 	tr, err := c.CurrentlyPlaying(context.Background(), "di", 1)
@@ -207,13 +487,14 @@ func TestStreamURL_resolvesViaJSON(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
 		"GET /v1/di/channels": {Body: `[{"id":1,"key":"classicrock","name":"Classic Rock"}]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
+	c.SetCreds(creds.Session{ListenKey: "mykey"})
 
 	// Channel exists in the listing → we proceed to the resolver step,
 	// which will fail because there's no listen.di.fm in test scope.
 	// What we DO assert: it doesn't return ErrNotFound (channel was found).
-	_, err := c.StreamURL(context.Background(), "di", "classicrock", "mykey", audioaddict.QualityPremiumHigh)
+	_, err := c.StreamURL(context.Background(), "di", "classicrock", audioaddict.QualityPremiumHigh)
 	if errors.Is(err, audioaddict.ErrNotFound) {
 		t.Errorf("got ErrNotFound; channel exists in fixture, expected resolver-attempt error instead")
 	}
@@ -223,10 +504,10 @@ func TestStreamURL_unknownChannel(t *testing.T) {
 	srv := testutil.NewAAServer(t, map[string]testutil.AAFixture{
 		"GET /v1/di/channels": {Body: `[{"id":1,"key":"classicrock","name":"Classic Rock"}]`},
 	})
-	c := audioaddict.NewClient()
+	c := audioaddict.NewClient(nil)
 	c.BaseURL = srv.URL + "/v1"
 
-	_, err := c.StreamURL(context.Background(), "di", "doesnotexist", "k", audioaddict.QualityPremiumHigh)
+	_, err := c.StreamURL(context.Background(), "di", "doesnotexist", audioaddict.QualityPremiumHigh)
 	if !errors.Is(err, audioaddict.ErrNotFound) {
 		t.Errorf("err = %v, want ErrNotFound", err)
 	}
@@ -306,8 +587,8 @@ func TestNetworks_includesAllSeven(t *testing.T) {
 
 func TestAuthenticate_live(t *testing.T) {
 	email, password := testutil.SkipIfNoLiveCreds(t)
-	c := audioaddict.NewClient()
-	m, err := c.Authenticate(context.Background(), email, password)
+	c := audioaddict.NewClient(nil)
+	m, err := c.Authenticate(context.Background(), email, password, "")
 	if err != nil {
 		t.Fatalf("live auth: %v", err)
 	}

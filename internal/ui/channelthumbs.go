@@ -28,9 +28,22 @@ func (m Model) kickoffVisibleThumbs() []tea.Cmd {
 		return nil
 	}
 	start, end := m.cardViewport(len(vis))
-	// Small prefetch margin (one card up + down) so a single arrow press
-	// rarely shows a placeholder.
-	const prefetch = 1
+	// Prefetch margin around the visible window.
+	//
+	// DIMM-419 reports cards staying blank after a fast hold-Down
+	// scroll. Controlled reproduction (unit + teatest with httptest
+	// CDN) shows dispatch is correct at ±1 — every visited card has a
+	// fetch fired. So the observed symptom must come from network-
+	// side effects the in-memory tests don't model: real-CDN rate
+	// limits, slow responses, HTTP/1.1 connection-per-host caps that
+	// queue 25 concurrent requests behind 2 connections.
+	//
+	// ±4 is defense-in-depth: it widens the in-flight queue so the
+	// network has more time to drain before the user outruns it, and
+	// it makes the scroll-back path warmer (cards behind the current
+	// position are already cached or in-flight). Cost is ~6 extra
+	// HTTP requests at startup vs the previous ~3.
+	const prefetch = 4
 	if start-prefetch >= 0 {
 		start -= prefetch
 	} else {

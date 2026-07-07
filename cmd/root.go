@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/dimmkirr/addiplay/internal/cache"
 )
 
 // Version is the binary version, injected from main via ldflags.
@@ -22,11 +25,12 @@ var (
 // Subcommands were collapsed into these flags so the CLI surface is
 // `addiplay [--action] [--global flags...]` instead of nested verbs.
 var (
-	actionDemo   bool
-	actionDoctor bool
-	actionLogout bool
-	actionWhoami bool
-	actionPlay   string // "<network>/<channel>" — non-empty means run headless play
+	actionDemo       bool
+	actionDoctor     bool
+	actionLogout     bool
+	actionWhoami     bool
+	actionClearCache bool
+	actionPlay       string // "<network>/<channel>" — non-empty means run headless play
 )
 
 var rootCmd = &cobra.Command{
@@ -55,6 +59,12 @@ action flags below for headless operation.`,
 			return runLogout(c.OutOrStdout())
 		case actionWhoami:
 			return runWhoami(c.OutOrStdout())
+		case actionClearCache:
+			dir, err := cache.DefaultDir()
+			if err != nil {
+				return fmt.Errorf("resolve cache dir: %w", err)
+			}
+			return runClearCache(c.OutOrStdout(), dir)
 		}
 		return runTUI(c.Context())
 	},
@@ -83,8 +93,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&actionLogout, "logout", false, "forget the saved AudioAddict credentials and exit")
 	rootCmd.Flags().BoolVar(&actionWhoami, "whoami", false, "print the stored AudioAddict account and exit")
 	rootCmd.Flags().StringVar(&actionPlay, "play", "", "headless play of <network>/<channel> (e.g. --play di/classicrock)")
+	rootCmd.Flags().BoolVar(&actionClearCache, "clear-cache", false, "wipe the addiplay disk cache (channel JSON, thumbnails, track metadata) and exit")
 
-	rootCmd.MarkFlagsMutuallyExclusive("demo", "doctor", "logout", "whoami", "play")
+	rootCmd.MarkFlagsMutuallyExclusive("demo", "doctor", "logout", "whoami", "play", "clear-cache")
 }
 
 // ApplyFanartFlags translates --ascii into the env-var the fanart

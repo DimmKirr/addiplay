@@ -25,11 +25,23 @@ func renderStatus(m Model) string {
 
 	// Hints row uses the SAME statusBar style for a unified bar look; the
 	// text is muted so it visually recedes vs the now-playing line above.
-	innerHints := padTo(m.width-2, m.st.muted.Render(hintsText(m)), "")
+	// When statusInfo is set, it temporarily replaces the hints with a
+	// green info message.
+	var hintsContent string
+	if m.statusInfo != "" {
+		hintsContent = m.st.infoBar.Render(m.statusInfo)
+	} else {
+		hintsContent = m.st.muted.Render(hintsText(m))
+	}
+	innerHints := padTo(m.width-2, hintsContent, "")
 	hintLine := m.st.statusBar.Render(innerHints)
 
 	if m.toast != "" {
-		toast := m.st.toast.Width(m.width).Render(" ! " + m.toast)
+		style := m.st.toast
+		if m.toastIsWarn {
+			style = m.st.warnToast
+		}
+		toast := style.Width(m.width).Render(" ! " + m.toast)
 		return lipgloss.JoinVertical(lipgloss.Left, toast, statusLine, hintLine)
 	}
 	return lipgloss.JoinVertical(lipgloss.Left, statusLine, hintLine)
@@ -70,15 +82,35 @@ func nowPlayingText(m Model) string {
 	if track == "" {
 		return fmt.Sprintf("%s  %s%s · —", glyph, label, star)
 	}
-	return fmt.Sprintf("%s  %s%s · %s", glyph, label, star, track)
+	return fmt.Sprintf("%s  %s%s · %s%s", glyph, label, star, track, heartGlyph(m))
 }
 
 // volumeText is the right half of the status line.
 func volumeText(m Model) string {
+	mode := modeText(m)
+	if mode != "" {
+		return fmt.Sprintf("%s  vol %d%%", mode, m.cfg.Volume)
+	}
 	return fmt.Sprintf("vol %d%%", m.cfg.Volume)
 }
 
+// modeText returns a short label for the current playback mode.
+func modeText(m Model) string {
+	if m.currentChannel == "" {
+		return ""
+	}
+	if m.trackQueue != nil {
+		return "on-demand"
+	}
+	return "live"
+}
+
 // hintsText is the second bar line — context-sensitive keybinding hints.
+// DIMM-394: Keep this to ≤ 5 items (4 most-used actions + `[?] more`)
+// per focus state. The full keymap lives behind `?` (DIMM-392). Previous
+// 9-item home-screen row was unreadable on narrow terminals and visual
+// noise on wide ones; modern TUIs (lazygit / helix / lazydocker) treat
+// the footer as a hint, not a manual.
 func hintsText(m Model) string {
 	switch m.focus {
 	case FocusSearch:
@@ -86,7 +118,7 @@ func hintsText(m Model) string {
 	case FocusNetworkPicker:
 		return "[↑↓] move   [enter] switch   [esc] cancel"
 	}
-	return "[space] pause   [enter] play   [f] favorite   [/] filter   [n] network   [L] logout   [q] quit"
+	return "[enter] play   [space] pause   [l] like   [/] search   [?] more"
 }
 
 // playerGlyph returns the leading status glyph for the given player state.

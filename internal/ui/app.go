@@ -18,6 +18,8 @@ package ui
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -39,6 +41,12 @@ const (
 	FocusNetworkPicker
 	FocusSearch
 	FocusLogin
+	// FocusHelp is the keymap overlay (DIMM-392) — opened by `?`,
+	// closed by `?`/Esc/`q`. The header has always advertised "[?] keys";
+	// before DIMM-392 the binding didn't exist, making the hint a
+	// dead promise. Lives behind a focus mode so it works from any
+	// non-input screen and self-renders without a separate Update loop.
+	FocusHelp
 )
 
 // Tab is the right-pane filter tab.
@@ -52,9 +60,23 @@ const (
 // AudioClient is the audioaddict surface the UI uses. The production
 // implementation is *audioaddict.Client; tests / demo use a fake.
 type AudioClient interface {
+	Authenticate(ctx context.Context, email, password, network string) (audioaddict.Member, error)
 	Channels(ctx context.Context, network string) ([]audioaddict.Channel, error)
-	StreamURL(ctx context.Context, network, channel, listenKey string, q audioaddict.Quality) (string, error)
+	StreamURL(ctx context.Context, network, channel string, q audioaddict.Quality) (string, error)
 	CurrentlyPlaying(ctx context.Context, network string, channelID int64) (audioaddict.Track, error)
+	LikeTrack(ctx context.Context, network string, trackID, channelID int64) error
+	DislikeTrack(ctx context.Context, network string, trackID, channelID int64) error
+	UnlikeTrack(ctx context.Context, network string, trackID, channelID int64) error
+	SkipTrack(ctx context.Context, network string, trackID, channelID int64, trackLength, skippedAt int) (*audioaddict.SkipResponse, error)
+	FetchRoutine(ctx context.Context, network string, channelID int64, tuneIn bool) ([]audioaddict.RoutineTrack, error)
+	// FetchTrack reads /tracks/<id> and carries the bloom filters used
+	// to detect whether the current member has voted on this track.
+	FetchTrack(ctx context.Context, network string, trackID int64) (*audioaddict.TrackInfo, error)
+	// SetCreds + Creds let the UI push a freshly-loaded Session into the
+	// client on startup and read back the current state for the header.
+	SetCreds(s creds.Session)
+	Creds() creds.Session
+	Logout() error
 }
 
 // AudioPlayer is the playback surface the UI uses. Production is
@@ -86,8 +108,12 @@ type Model struct {
 	// model so the quit handler can fire it before returning tea.Quit.
 	ctx       context.Context
 	cancel    context.CancelFunc
-	creds     creds.Creds
+	creds     creds.Session
 	client    AudioClient
+	// pendingVote remembers the vote the user attempted right before
+	// `voteRequest` returned ErrSessionInvalid; replayed automatically on
+	// the next loginSuccessMsg. Avoids making the user press `l` twice.
+	pendingVote *pendingVote
 	player    AudioPlayer
 	newPlayer NewPlayerFunc
 	cfg       config.Config
@@ -107,8 +133,16 @@ type Model struct {
 	currentTrack   audioaddict.Track
 
 	focus       Focus
+	prevFocus   Focus // remembered when opening FocusHelp so Esc restores it
 	searchInput textinput.Model
 	netCursor   int
+	// pendingLogout (DIMM-393) is set on the FIRST `L` press; only the
+	// SECOND press within `logoutConfirmWindow` actually wipes the
+	// session. `L` is one shift-key from `l` (like) so we make the
+	// destructive action confirm-then-act instead of fire-and-forget.
+	// Esc / any non-`L` key clears it; a Tick clears it after the
+	// window expires so the toast doesn't lie.
+	pendingLogout bool
 
 	// Login overlay inputs (FocusLogin). Initialized lazily; see screen_login.go.
 	loginEmail    textinput.Model
@@ -117,8 +151,10 @@ type Model struct {
 	loginError    string // last auth failure, cleared on next submit
 	loginBusy     bool   // an Authenticate request is in flight
 
-	toast     string
-	loading   bool
+	toast       string
+	toastIsWarn bool
+	statusInfo  string // transient info shown inline in the now-playing line (green)
+	loading     bool
 	resolving bool
 	playerSt  player.State
 
@@ -136,11 +172,55 @@ type Model struct {
 	// duplicates. Empty map means "thumbnails disabled" (fanart mode is
 	// None, e.g. headless / non-truecolor terminal).
 	channelThumbs map[string]string
+
+	// likedTracks is the session-local set of track IDs the user has
+	// upvoted via the `l` key. We don't fetch prior likes from the server
+	// (no GET endpoint researched — DIMM-381 deferred).
+	likedTracks map[int64]bool
+	// dislikedTracks is the mirror for the `d` key (DIMM-382). Mutually
+	// exclusive with likedTracks per server semantics: POST /up clears a
+	// /down vote and vice-versa.
+	dislikedTracks map[int64]bool
+	// voteInFlight debounces double-presses while a like/dislike/unlike
+	// request is mid-flight.
+	voteInFlight bool
+	// skipInFlight debounces `s` while a skip request is mid-flight.
+	skipInFlight bool
+	// trackQueue holds on-demand tracks for the current channel (per-track
+	// mode via channel_routine API). nil means live-stream mode.
+	trackQueue *audioaddict.TrackQueue
+}
+
+// sliceToMap converts a persisted []int64 vote list to the runtime
+// set-shaped map used by the UI.
+func sliceToMap(ids []int64) map[int64]bool {
+	m := make(map[int64]bool, len(ids))
+	for _, id := range ids {
+		if id != 0 {
+			m[id] = true
+		}
+	}
+	return m
+}
+
+// mapToSlice flattens the runtime set back to a deterministic slice
+// for YAML persistence (sorted so config-file diffs stay small across
+// runs that vote on tracks in different orders).
+func mapToSlice(m map[int64]bool) []int64 {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]int64, 0, len(m))
+	for id := range m {
+		out = append(out, id)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 // NewModel constructs the root model with explicit client and player
 // constructor. cmd/tui.go injects the real ones; cmd/demo.go injects fakes.
-func NewModel(ctx context.Context, c creds.Creds, client AudioClient, newPlayer NewPlayerFunc) Model {
+func NewModel(ctx context.Context, c creds.Session, client AudioClient, newPlayer NewPlayerFunc) Model {
 	cfg, _ := config.Load()
 	theme := ThemeFor(cfg.LastNetwork)
 
@@ -168,6 +248,8 @@ func NewModel(ctx context.Context, c creds.Creds, client AudioClient, newPlayer 
 		searchInput:    ti,
 		fanartCache:    fanart.NewCache(),
 		channelThumbs:  map[string]string{},
+		likedTracks:    sliceToMap(cfg.LikedTracks),
+		dislikedTracks: sliceToMap(cfg.DislikedTracks),
 	}
 	// Auto-show login overlay on first run / when creds are absent. The
 	// caller (cmd/tui.go) usually checks first and skips constructing
@@ -193,6 +275,22 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Key dispatch: route to the screen that owns the current focus.
 	if k, ok := msg.(tea.KeyMsg); ok {
+		// Redact runes when the user is typing into a credential field —
+		// otherwise an `l`-to-vote keystroke trace would also capture
+		// the password (literal) and email (PII) as they're typed.
+		// We still log type/focus/loginField + the rune COUNT so the
+		// shape of input is debuggable.
+		runes := string(k.Runes)
+		str := k.String()
+		if m.focus == FocusLogin && (m.loginField == 0 || m.loginField == 1) && k.Type == tea.KeyRunes {
+			n := len(k.Runes)
+			runes = fmt.Sprintf("<redacted:n=%d>", n)
+			str = fmt.Sprintf("<redacted:n=%d>", n)
+		}
+		dlog("key: type=%s alt=%t runes=%q str=%q focus=%d loginField=%d loginBusy=%t loginError=%q currentTrack.ID=%d voteInFlight=%t session_key_len=%d",
+			k.Type, k.Alt, runes, str,
+			m.focus, m.loginField, m.loginBusy, m.loginError,
+			m.currentTrack.ID, m.voteInFlight, len(m.creds.SessionKey))
 		switch m.focus {
 		case FocusSearch:
 			return m.updateSearch(k)
@@ -200,6 +298,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateNetworkPicker(k)
 		case FocusLogin:
 			return m.updateLogin(k)
+		case FocusHelp:
+			return m.updateHelp(k)
 		default:
 			return m.updateHome(k)
 		}
@@ -231,6 +331,14 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.state == player.StatePlaying {
 			m.toast = ""
 		}
+		if msg.state == player.StateIdle && m.trackQueue != nil && m.currentChannel != "" {
+			chID := channelIDFromKey(m.channels, m.currentChannel)
+			ch, ok := channelByID(m.channels, chID)
+			if ok {
+				dlog("playerStateMsg: idle in per-track mode — auto-advancing")
+				cmds = append(cmds, advanceTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, ch, m.trackQueue))
+			}
+		}
 		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
 
 	case channelsLoadedMsg:
@@ -241,12 +349,25 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		// across networks (e.g. "classictrance" exists on both di and
 		// radiotunes with different art).
 		m.channelThumbs = map[string]string{}
-		if m.cfg.LastChannel != "" && m.player != nil {
+		// Auto-resume the last-played channel — but ONLY when nothing
+		// is currently playing on this network. Otherwise a mid-session
+		// reload (e.g. after re-auth) would yank mpv off the active
+		// track even though the listen_key hasn't changed.
+		alreadyPlaying := m.currentChannel != "" && m.playingNetwork == m.currentNetwork
+		if !alreadyPlaying && m.cfg.LastChannel != "" && m.player != nil {
 			for i, ch := range m.channels {
 				if ch.Key == m.cfg.LastChannel {
 					m.selIdx = i
-					cmds = append(cmds, playSelectedCmd(m.ctx, m.client, m.player, m.currentNetwork, ch, m.creds.ListenKey))
+					cmds = append(cmds, playSelectedCmd(m.ctx, m.client, m.player, m.currentNetwork, ch))
 					m.currentChannel = ch.Key
+					break
+				}
+			}
+		} else if alreadyPlaying {
+			// Keep the visual selection in sync with what's actually playing.
+			for i, ch := range m.channels {
+				if ch.Key == m.currentChannel {
+					m.selIdx = i
 					break
 				}
 			}
@@ -275,8 +396,38 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			m.toast = "load channels: " + msg.err.Error()
 		}
 
+	case routineReadyMsg:
+		dlog("routineReadyMsg: channel=%s net=%s tracks=%d", msg.channel.Key, msg.network, len(msg.tracks))
+		m.resolving = false
+		m.currentChannel = msg.channel.Key
+		m.playingNetwork = msg.network
+		m.currentNetwork = msg.network
+		m.cfg.LastChannel = msg.channel.Key
+		m.cfg.LastNetwork = msg.network
+		_ = m.cfg.Save()
+		m.trackTickGen++
+		q := audioaddict.NewTrackQueue()
+		q.Append(msg.tracks)
+		q.Next() // advance past the first track (already playing)
+		m.trackQueue = q
+		if len(msg.tracks) > 0 {
+			m.currentTrack = msg.tracks[0].ToTrack()
+			if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+			if m.creds.ID != 0 {
+				cmds = append(cmds, loadVoteStateCmd(m.ctx, m.client, m.playingNetwork, m.currentTrack.ID, m.creds.ID))
+			}
+		}
+		m.statusInfo = fmt.Sprintf("on-demand (%d tracks queued)", q.Remaining())
+			cmds = append(cmds, clearStatusInfoCmd())
+
 	case streamPlayingMsg:
 		m.resolving = false
+		m.trackQueue = nil // live-stream mode — clear any per-track queue
+		if m.creds.AudioToken == "" {
+			dlog("streamPlayingMsg: live-stream fallback — audio_token empty, re-login for per-track mode")
+		}
 		m.currentChannel = msg.channel.Key
 		m.playingNetwork = msg.network
 		m.currentNetwork = msg.network
@@ -316,10 +467,16 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case streamErrorMsg:
 		m.resolving = false
-		if msg.unauthorized {
+		switch {
+		case msg.listenKeyDead:
+			// listen_key rejected at the stream resolver — full re-auth
+			// is required (the credential the URL is signed with is dead).
+			m.toast = "listen_key rejected — sign in again"
+			m = m.initLoginInputs(false)
+		case msg.unauthorized:
 			m.toast = "session expired — sign in again"
 			m = m.initLoginInputs(false)
-		} else {
+		default:
 			m.toast = "play: " + msg.err.Error()
 		}
 		m.loading = false
@@ -329,13 +486,48 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			break
 		}
 		if msg.channelID == channelIDFromKey(m.channels, m.currentChannel) || m.playingNetwork != m.currentNetwork {
+			// Vote restoration: on track change, fetch the track's
+			// bloom filter and check whether this member is in the
+			// who_upvoted / who_downvoted set. Hash function is
+			// `crc32(memberID + ":" + (i+seed))` per di.fm's web
+			// player — reverse-engineered 2026-06-29 (DIMM-383
+			// follow-up). Local config mirror (config.LikedTracks)
+			// remains for first-paint state before this resolves AND
+			// for tracks where the API request fails.
+			newTrackID := msg.track.ID
+			loadVote := newTrackID != 0 && newTrackID != m.currentTrack.ID && m.creds.ID != 0
 			m.currentTrack = msg.track
 			ch, _ := channelByID(m.channels, msg.channelID)
 			if cmd := m.refreshFanart(msg.track, ch); cmd != nil {
 				cmds = append(cmds, cmd)
 			}
+			if loadVote {
+				cmds = append(cmds, loadVoteStateCmd(m.ctx, m.client, m.playingNetwork, newTrackID, m.creds.ID))
+			}
 			cmds = append(cmds, tickTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channelID, msg.gen))
 		}
+
+	case trackVoteLoadedMsg:
+		dlog("trackVoteLoadedMsg: trackID=%d liked=%t disliked=%t", msg.trackID, msg.liked, msg.disliked)
+		if m.likedTracks == nil {
+			m.likedTracks = map[int64]bool{}
+		}
+		if m.dislikedTracks == nil {
+			m.dislikedTracks = map[int64]bool{}
+		}
+		switch {
+		case msg.liked:
+			m.likedTracks[msg.trackID] = true
+			delete(m.dislikedTracks, msg.trackID)
+		case msg.disliked:
+			m.dislikedTracks[msg.trackID] = true
+			delete(m.likedTracks, msg.trackID)
+		}
+		// Sync to local config too — keeps the offline fallback warm
+		// in case the API is unreachable on next launch.
+		m.cfg.LikedTracks = mapToSlice(m.likedTracks)
+		m.cfg.DislikedTracks = mapToSlice(m.dislikedTracks)
+		_ = m.cfg.Save()
 
 	case networkSwitchedMsg:
 		m.currentNetwork = msg.network
@@ -348,16 +540,169 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, loadChannelsCmd(m.ctx, m.client, msg.network))
 
 	case loginSuccessMsg:
+		dlog("loginSuccessMsg: email_set=%t listen_key_len=%d session_key_len=%d premium=%t channels_loaded=%d currentChannel=%q pendingVote=%t",
+			msg.creds.Email != "", len(msg.creds.ListenKey), len(msg.creds.SessionKey), msg.creds.Premium,
+			len(m.channels), m.currentChannel, m.pendingVote != nil)
 		m.creds = msg.creds
 		m.focus = FocusChannels
 		m.loginBusy = false
 		m.loginError = ""
-		// Re-load channels with the fresh listen_key.
-		cmds = append(cmds, loadChannelsCmd(m.ctx, m.client, m.currentNetwork))
+		// Clear any "session expired" toast left over from the 401/403
+		// that popped the overlay — the fresh creds invalidate it.
+		m.toast = ""
+		// Re-load channels ONLY if we don't have them yet. Channel
+		// listing is a public read — it doesn't use listen_key or
+		// session_key, so the existing list (loaded at startup) is
+		// still valid. The previous unconditional reload had two bad
+		// side effects: (1) it fires channelsLoadedMsg → auto-resume
+		// branch → playSelectedCmd, restarting the stream mid-track,
+		// even though listen_key is unchanged and mpv is still happy;
+		// (2) it dropped channelThumbs and refetched every thumbnail.
+		if len(m.channels) == 0 {
+			cmds = append(cmds, loadChannelsCmd(m.ctx, m.client, m.currentNetwork))
+		}
+		// Replay the vote that bounced off ErrSessionInvalid. The
+		// in-memory + persisted session_key is now fresh, so the
+		// retry should land. Cleared regardless of dispatch result
+		// to prevent a runaway loop on persistent 403.
+		if m.pendingVote != nil {
+			pv := m.pendingVote
+			m.pendingVote = nil
+			dlog("loginSuccessMsg: replaying pendingVote (network=%s track=%d channel=%d dir=%d)",
+				pv.network, pv.trackID, pv.channelID, pv.dir)
+			m.voteInFlight = true
+			cmds = append(cmds, voteCmd(m.ctx, m.client, pv.network, pv.trackID, pv.channelID, pv.dir))
+		}
 
 	case loginErrorMsg:
+		dlog("loginErrorMsg: %v", msg.err)
 		m.loginBusy = false
 		m.loginError = msg.err.Error()
+
+	case clearStatusInfoMsg:
+		m.statusInfo = ""
+
+	case logoutConfirmTimeoutMsg:
+		// 3s expired after first `L` — clear the pending state so the
+		// toast doesn't lie. No-op if a second `L` already fired.
+		if m.pendingLogout {
+			dlog("logoutConfirmTimeoutMsg: clearing stale pendingLogout")
+			m.pendingLogout = false
+			if strings.HasPrefix(m.toast, "press L") {
+				m.toast = ""
+			}
+		}
+
+	case skipOKMsg:
+		dlog("skipOKMsg: channel=%s net=%s skipsRemaining=%d routineTrack=%t",
+			msg.channel.Key, msg.network, msg.skipsRemaining, msg.routineTrack != nil)
+		m.skipInFlight = false
+		m.currentChannel = msg.channel.Key
+		m.playingNetwork = msg.network
+		m.trackTickGen++
+		if msg.routineTrack != nil {
+			m.currentTrack = msg.routineTrack.ToTrack()
+			if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+			if m.creds.ID != 0 {
+				cmds = append(cmds, loadVoteStateCmd(m.ctx, m.client, m.playingNetwork, m.currentTrack.ID, m.creds.ID))
+			}
+		} else {
+			gen := m.trackTickGen
+			cmds = append(cmds,
+				fetchTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
+				tickTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
+			)
+		}
+		if msg.skipsRemaining > 0 {
+			m.statusInfo = fmt.Sprintf("skipped — %d skip(s) left", msg.skipsRemaining)
+		} else {
+			m.statusInfo = "skipped"
+		}
+		cmds = append(cmds, clearStatusInfoCmd())
+
+	case skipErrMsg:
+		dlog("skipErrMsg: err=%v sessionInvalid=%t", msg.err, msg.sessionInvalid)
+		m.skipInFlight = false
+		switch {
+		case msg.sessionInvalid:
+			m.toast = "session expired — sign in again"
+			m = m.initLoginInputs(false)
+		default:
+			m.toast = "skip: " + msg.err.Error()
+		}
+
+	case trackAdvancedMsg:
+		dlog("trackAdvancedMsg: track=%d (%s)", msg.routineTrack.TrackID, msg.routineTrack.Track)
+		m.trackTickGen++
+		m.currentTrack = msg.routineTrack.ToTrack()
+		if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		if m.creds.ID != 0 {
+			cmds = append(cmds, loadVoteStateCmd(m.ctx, m.client, m.playingNetwork, m.currentTrack.ID, m.creds.ID))
+		}
+
+	case trackAdvanceErrMsg:
+		dlog("trackAdvanceErrMsg: err=%v", msg.err)
+		m.trackQueue = nil
+		m.toast = "auto-advance failed: " + msg.err.Error()
+
+	case voteOKMsg:
+		dlog("voteOKMsg: trackID=%d liked=%t disliked=%t — vote applied", msg.trackID, msg.liked, msg.disliked)
+		if m.likedTracks == nil {
+			m.likedTracks = map[int64]bool{}
+		}
+		if m.dislikedTracks == nil {
+			m.dislikedTracks = map[int64]bool{}
+		}
+		switch {
+		case msg.liked:
+			m.likedTracks[msg.trackID] = true
+			delete(m.dislikedTracks, msg.trackID)
+		case msg.disliked:
+			m.dislikedTracks[msg.trackID] = true
+			delete(m.likedTracks, msg.trackID)
+		default:
+			delete(m.likedTracks, msg.trackID)
+			delete(m.dislikedTracks, msg.trackID)
+		}
+		m.voteInFlight = false
+		// Persist for next launch — the bloom filter on the API side
+		// is opaque, so we keep a local mirror of what we've voted on.
+		m.cfg.LikedTracks = mapToSlice(m.likedTracks)
+		m.cfg.DislikedTracks = mapToSlice(m.dislikedTracks)
+		if err := m.cfg.Save(); err != nil {
+			dlog("voteOKMsg: cfg.Save FAIL err=%v", err)
+		}
+
+	case voteErrMsg:
+		m.voteInFlight = false
+		switch {
+		case msg.sessionInvalid:
+			// The X-Session-Key was rejected. Stash the original op so
+			// loginSuccessMsg replays it; pop login. Toast is empty —
+			// the overlay is enough signal; the user just typed `l` and
+			// gets the password prompt straight away.
+			dlog("voteErrMsg: sessionInvalid — stashing pendingVote and popping login")
+			m.pendingVote = &pendingVote{
+				network:   msg.network,
+				trackID:   msg.trackID,
+				channelID: msg.channelID,
+				dir:       msg.dir,
+			}
+			m.toast = ""
+			m = m.initLoginInputs(false)
+		case msg.unauthorized:
+			// Generic 401/403 — full re-auth path. (Today this should
+			// not fire on vote since ErrSessionInvalid covers it; kept
+			// as defense in depth.)
+			m.toast = "session expired — sign in again"
+			m = m.initLoginInputs(false)
+		default:
+			m.toast = "vote: " + msg.err.Error()
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -375,6 +720,8 @@ func (m Model) View() string {
 		return m.viewNetworkPicker()
 	case FocusLogin:
 		return m.viewLogin()
+	case FocusHelp:
+		return m.viewHelp()
 	default:
 		return m.viewHome()
 	}

@@ -52,12 +52,30 @@ func runTUI(parent context.Context) error {
 	if dbg != nil {
 		fanart.SetDebugLogger(dbg.Writer)
 		ui.SetDebugLogger(dbg.Writer)
+		creds.SetDebugLogger(dbg.Writer)
 		defer fanart.SetDebugLogger(nil)
 		defer ui.SetDebugLogger(nil)
-		_, _ = fmt.Fprintf(dbg.Writer, "[tui] runTUI starting (creds=%s)\n", c.Email)
+		defer creds.SetDebugLogger(nil)
+		_, _ = fmt.Fprintf(dbg.Writer,
+			"[tui] runTUI starting (load_err=%v email_set=%t listen_key_len=%d session_key_len=%d premium=%t)\n",
+			err, c.Email != "", len(c.ListenKey), len(c.SessionKey), c.Premium)
 	}
 
-	client := audioaddict.NewClient()
+	// Best-effort startup cache sweep — enforces the 30d-age / 50 MiB
+	// size limits before the model wires up image+API fetches that
+	// will write fresh entries. Failures are logged and ignored: a
+	// corrupt cache should never prevent boot.
+	if dbg != nil {
+		sweepCacheBestEffort(dbg.Writer)
+	} else {
+		sweepCacheBestEffort(nil)
+	}
+
+	client := audioaddict.NewClient(creds.DefaultStorage)
+	client.SetCreds(c)
+	if dbg != nil {
+		client.Debug = dbg.Writer
+	}
 	newPlayer := func(ctx context.Context) (ui.AudioPlayer, error) {
 		var opts []player.Option
 		if dbg != nil {
