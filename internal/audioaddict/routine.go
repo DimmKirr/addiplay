@@ -30,6 +30,7 @@ type RoutineTrack struct {
 	Title         json.RawMessage `json:"title"`
 	DisplayTitle  string          `json:"display_title"`
 	ArtURL        string          `json:"art_url"`
+	Images        Image           `json:"images"`
 	Length        float64         `json:"length"`
 }
 
@@ -65,13 +66,17 @@ func (rt RoutineTrack) ToTrack() Track {
 	if id == 0 {
 		id = rt.ID
 	}
+	artURL := rt.ArtURL
+	if artURL == "" {
+		artURL = rt.Images.PreferredFanartURL()
+	}
 	return Track{
 		ID:       id,
 		Artist:   artist,
 		Title:    title,
 		Track:    track,
 		Duration: durationOr(rt.Content.Length, rt.Length),
-		ArtURL:   rt.ArtURL,
+		ArtURL:   artURL,
 	}
 }
 
@@ -193,6 +198,13 @@ func (q *TrackQueue) Remaining() int {
 		return 0
 	}
 	return r
+}
+
+// Position returns the 1-based index of the current track and total count.
+func (q *TrackQueue) Position() (int, int) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.pos, len(q.tracks)
 }
 
 // Reset clears the queue.

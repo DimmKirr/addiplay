@@ -17,9 +17,7 @@ import (
 // so the two overlays look identical and any styling change happens
 // in one place. padX/padY are the inner padding inside the box.
 func (m Model) renderCenteredPopover(content string, padX, padY int) string {
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(m.theme.Accent).
+	box := m.st.paneFocused.
 		Padding(padY, padX).
 		Render(content)
 	return m.st.app.Width(m.width).Height(m.height).Render(

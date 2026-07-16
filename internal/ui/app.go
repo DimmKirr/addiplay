@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -72,6 +73,7 @@ type AudioClient interface {
 	// FetchTrack reads /tracks/<id> and carries the bloom filters used
 	// to detect whether the current member has voted on this track.
 	FetchTrack(ctx context.Context, network string, trackID int64) (*audioaddict.TrackInfo, error)
+	ChannelHistory(ctx context.Context, network string, channelID int64) ([]audioaddict.Track, error)
 	// SetCreds + Creds let the UI push a freshly-loaded Session into the
 	// client on startup and read back the current state for the header.
 	SetCreds(s creds.Session)
@@ -114,6 +116,10 @@ type Model struct {
 	// `voteRequest` returned ErrSessionInvalid; replayed automatically on
 	// the next loginSuccessMsg. Avoids making the user press `l` twice.
 	pendingVote *pendingVote
+	// pendingSkip mirrors pendingVote for skip attempts that bounced off
+	// ErrSessionInvalid — replayed after re-auth so the user doesn't have
+	// to press skip twice. (DIMM-423)
+	pendingSkip *pendingSkip
 	player    AudioPlayer
 	newPlayer NewPlayerFunc
 	cfg       config.Config
@@ -131,6 +137,12 @@ type Model struct {
 	playingNetwork string // network of the channel currently being PLAYED
 	currentChannel string
 	currentTrack   audioaddict.Track
+
+	recentTracks      []audioaddict.Track
+	trackStartTime    time.Time
+	trackPauseElapsed time.Duration
+	voteUp            int
+	voteDown          int
 
 	focus       Focus
 	prevFocus   Focus // remembered when opening FocusHelp so Esc restores it
@@ -273,6 +285,14 @@ func (m Model) Init() tea.Cmd {
 // channel-load, stream, fanart, etc.) regardless of focus, then routes
 // keyboard input to the active screen's handler.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Mouse dispatch: handle clicks and scroll wheel on the home screen.
+	if mm, ok := msg.(tea.MouseMsg); ok {
+		if m.focus == FocusChannels {
+			return m.handleMouse(mm)
+		}
+		return m, nil
+	}
+
 	// Key dispatch: route to the screen that owns the current focus.
 	if k, ok := msg.(tea.KeyMsg); ok {
 		// Redact runes when the user is typing into a credential field —
@@ -326,10 +346,19 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.loading = false
 
 	case playerStateMsg:
+		prevSt := m.playerSt
 		m.playerSt = msg.state
 		m.loading = msg.state == player.StateLoading
 		if msg.state == player.StatePlaying {
 			m.toast = ""
+			cmds = append(cmds, progressTickCmd())
+			if prevSt == player.StatePaused && m.trackPauseElapsed > 0 {
+				m.trackStartTime = time.Now().Add(-m.trackPauseElapsed)
+				m.trackPauseElapsed = 0
+			}
+		}
+		if msg.state == player.StatePaused && prevSt == player.StatePlaying {
+			m.trackPauseElapsed = time.Since(m.trackStartTime)
 		}
 		if msg.state == player.StateIdle && m.trackQueue != nil && m.currentChannel != "" {
 			chID := channelIDFromKey(m.channels, m.currentChannel)
@@ -412,6 +441,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.trackQueue = q
 		if len(msg.tracks) > 0 {
 			m.currentTrack = msg.tracks[0].ToTrack()
+			m.trackStartTime = time.Now()
+			m.trackPauseElapsed = 0
+			m.voteUp = 0
+			m.voteDown = 0
 			if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
 				cmds = append(cmds, cmd)
 			}
@@ -427,6 +460,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.trackQueue = nil // live-stream mode — clear any per-track queue
 		if m.creds.AudioToken == "" {
 			dlog("streamPlayingMsg: live-stream fallback — audio_token empty, re-login for per-track mode")
+			m.toast = "per-track mode unavailable — sign in again for skip + on-demand"
 		}
 		m.currentChannel = msg.channel.Key
 		m.playingNetwork = msg.network
@@ -435,10 +469,16 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.cfg.LastNetwork = msg.network
 		_ = m.cfg.Save()
 		m.trackTickGen++
+		m.trackStartTime = time.Now()
+		m.trackPauseElapsed = 0
+		m.voteUp = 0
+		m.voteDown = 0
+		m.recentTracks = nil
 		gen := m.trackTickGen
 		cmds = append(cmds,
 			fetchTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
 			tickTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
+			fetchHistoryCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID),
 		)
 		if cmd := m.refreshFanart(audioaddict.Track{}, msg.channel); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -495,7 +535,15 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			// remains for first-paint state before this resolves AND
 			// for tracks where the API request fails.
 			newTrackID := msg.track.ID
-			loadVote := newTrackID != 0 && newTrackID != m.currentTrack.ID && m.creds.ID != 0
+			trackChanged := newTrackID != 0 && newTrackID != m.currentTrack.ID
+			loadVote := trackChanged && m.creds.ID != 0
+			if trackChanged {
+				m.trackStartTime = time.Now()
+				m.trackPauseElapsed = 0
+				m.voteUp = 0
+				m.voteDown = 0
+				cmds = append(cmds, fetchHistoryCmd(m.ctx, m.client, m.playingNetwork, msg.channelID))
+			}
 			m.currentTrack = msg.track
 			ch, _ := channelByID(m.channels, msg.channelID)
 			if cmd := m.refreshFanart(msg.track, ch); cmd != nil {
@@ -505,6 +553,18 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 				cmds = append(cmds, loadVoteStateCmd(m.ctx, m.client, m.playingNetwork, newTrackID, m.creds.ID))
 			}
 			cmds = append(cmds, tickTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channelID, msg.gen))
+		}
+
+	case progressTickMsg:
+		if m.playerSt == player.StatePlaying {
+			cmds = append(cmds, progressTickCmd())
+		}
+
+	case recentTracksMsg:
+		if len(msg.tracks) > 1 {
+			m.recentTracks = msg.tracks[1:]
+		} else {
+			m.recentTracks = nil
 		}
 
 	case trackVoteLoadedMsg:
@@ -523,6 +583,8 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			m.dislikedTracks[msg.trackID] = true
 			delete(m.likedTracks, msg.trackID)
 		}
+		m.voteUp = msg.voteUp
+		m.voteDown = msg.voteDown
 		// Sync to local config too — keeps the offline fallback warm
 		// in case the API is unreachable on next launch.
 		m.cfg.LikedTracks = mapToSlice(m.likedTracks)
@@ -540,9 +602,9 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, loadChannelsCmd(m.ctx, m.client, msg.network))
 
 	case loginSuccessMsg:
-		dlog("loginSuccessMsg: email_set=%t listen_key_len=%d session_key_len=%d premium=%t channels_loaded=%d currentChannel=%q pendingVote=%t",
+		dlog("loginSuccessMsg: email_set=%t listen_key_len=%d session_key_len=%d premium=%t channels_loaded=%d currentChannel=%q pendingVote=%t pendingSkip=%t",
 			msg.creds.Email != "", len(msg.creds.ListenKey), len(msg.creds.SessionKey), msg.creds.Premium,
-			len(m.channels), m.currentChannel, m.pendingVote != nil)
+			len(m.channels), m.currentChannel, m.pendingVote != nil, m.pendingSkip != nil)
 		m.creds = msg.creds
 		m.focus = FocusChannels
 		m.loginBusy = false
@@ -573,6 +635,15 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			m.voteInFlight = true
 			cmds = append(cmds, voteCmd(m.ctx, m.client, pv.network, pv.trackID, pv.channelID, pv.dir))
 		}
+		if m.pendingSkip != nil {
+			ps := m.pendingSkip
+			m.pendingSkip = nil
+			dlog("loginSuccessMsg: replaying pendingSkip (network=%s track=%d channel=%d)",
+				ps.network, ps.trackID, ps.channelID)
+			m.skipInFlight = true
+			trackLen := int(m.currentTrack.Duration)
+			cmds = append(cmds, skipTrackCmd(m.ctx, m.client, m.player, ps.network, ps.trackID, ps.channelID, trackLen, 0, ps.channel, m.trackQueue))
+		}
 
 	case loginErrorMsg:
 		dlog("loginErrorMsg: %v", msg.err)
@@ -600,6 +671,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.currentChannel = msg.channel.Key
 		m.playingNetwork = msg.network
 		m.trackTickGen++
+		m.trackStartTime = time.Now()
+		m.trackPauseElapsed = 0
+		m.voteUp = 0
+		m.voteDown = 0
 		if msg.routineTrack != nil {
 			m.currentTrack = msg.routineTrack.ToTrack()
 			if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
@@ -627,7 +702,14 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.skipInFlight = false
 		switch {
 		case msg.sessionInvalid:
-			m.toast = "session expired — sign in again"
+			dlog("skipErrMsg: sessionInvalid — stashing pendingSkip and popping login")
+			m.pendingSkip = &pendingSkip{
+				network:   msg.network,
+				trackID:   msg.trackID,
+				channelID: msg.channelID,
+				channel:   msg.channel,
+			}
+			m.toast = ""
 			m = m.initLoginInputs(false)
 		default:
 			m.toast = "skip: " + msg.err.Error()
@@ -636,6 +718,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 	case trackAdvancedMsg:
 		dlog("trackAdvancedMsg: track=%d (%s)", msg.routineTrack.TrackID, msg.routineTrack.Track)
 		m.trackTickGen++
+		m.trackStartTime = time.Now()
+		m.trackPauseElapsed = 0
+		m.voteUp = 0
+		m.voteDown = 0
 		m.currentTrack = msg.routineTrack.ToTrack()
 		if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
 			cmds = append(cmds, cmd)

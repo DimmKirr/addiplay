@@ -743,6 +743,39 @@ func (c *Client) CurrentlyPlaying(ctx context.Context, network string, channelID
 	return t, nil
 }
 
+// ChannelHistory returns the recent track history for a channel (most recent
+// first). Same endpoint as CurrentlyPlaying but returns the full list (~20 items).
+func (c *Client) ChannelHistory(ctx context.Context, network string, channelID int64) ([]Track, error) {
+	var items []trackHistoryItem
+	path := fmt.Sprintf("/%s/track_history/channel/%d", network, channelID)
+	if err := c.getJSON(ctx, path, &items); err != nil {
+		return nil, err
+	}
+	tracks := make([]Track, 0, len(items))
+	for _, it := range items {
+		t := Track{
+			ID:       it.TrackID,
+			Artist:   firstNonEmpty(it.DisplayArtist, it.Artist),
+			Title:    firstNonEmpty(it.DisplayTitle, it.Title),
+			Track:    it.Track,
+			Duration: durationOr(it.Duration, float64(it.Length)),
+			ArtURL:   it.ArtURL,
+		}
+		if t.Track == "" {
+			switch {
+			case t.Artist != "" && t.Title != "":
+				t.Track = t.Artist + " - " + t.Title
+			case t.Title != "":
+				t.Track = t.Title
+			case t.Artist != "":
+				t.Track = t.Artist
+			}
+		}
+		tracks = append(tracks, t)
+	}
+	return tracks, nil
+}
+
 func firstNonEmpty(a, b string) string {
 	if a != "" {
 		return a

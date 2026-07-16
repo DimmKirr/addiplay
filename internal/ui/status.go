@@ -51,7 +51,7 @@ func renderStatus(m Model) string {
 func nowPlayingText(m Model) string {
 	glyph := playerGlyph(m.playerSt)
 	if m.resolving {
-		glyph = "◐"
+		glyph = "⠋"
 	}
 	if m.currentChannel == "" {
 		star := ""
@@ -125,11 +125,11 @@ func hintsText(m Model) string {
 func playerGlyph(s player.State) string {
 	switch s {
 	case player.StatePlaying:
-		return "⏵"
+		return "▶"
 	case player.StatePaused:
-		return "⏸"
+		return "‖"
 	case player.StateLoading:
-		return "◐"
+		return "⠋"
 	case player.StateError:
 		return "✗"
 	default:

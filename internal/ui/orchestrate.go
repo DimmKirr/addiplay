@@ -58,7 +58,12 @@ type (
 		trackID  int64
 		liked    bool
 		disliked bool
+		voteUp   int
+		voteDown int
 	}
+
+	progressTickMsg  struct{}
+	recentTracksMsg  struct{ tracks []audioaddict.Track }
 
 	// channelThumbReadyMsg carries a fetched-and-encoded ASCII thumbnail
 	// for one channel's left-of-card swatch. key == channel.Key (not ID:
@@ -92,10 +97,16 @@ type (
 		skipsRemaining int
 		routineTrack   *audioaddict.RoutineTrack
 	}
-	// skipErrMsg surfaces a skip-API or re-tune failure.
+	// skipErrMsg surfaces a skip-API or re-tune failure. Carries the
+	// original skip context so sessionInvalid errors can stash a
+	// pendingSkip for replay after re-auth (mirrors voteErrMsg).
 	skipErrMsg struct {
 		err            error
 		sessionInvalid bool
+		network        string
+		trackID        int64
+		channelID      int64
+		channel        audioaddict.Channel
 	}
 
 	// voteOKMsg is dispatched after a successful LikeTrack/DislikeTrack/
@@ -131,6 +142,15 @@ type pendingVote struct {
 	trackID   int64
 	channelID int64
 	dir       voteDirection
+}
+
+// pendingSkip captures a skip attempt that bounced off ErrSessionInvalid,
+// so loginSuccessMsg can replay it without the user pressing skip twice.
+type pendingSkip struct {
+	network   string
+	trackID   int64
+	channelID int64
+	channel   audioaddict.Channel
 }
 
 // -----------------------------------------------------------------------------
@@ -306,6 +326,10 @@ func skipTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, networ
 			return skipErrMsg{
 				err:            err,
 				sessionInvalid: errors.Is(err, audioaddict.ErrSessionInvalid),
+				network:        network,
+				trackID:        trackID,
+				channelID:      channelID,
+				channel:        ch,
 			}
 		}
 		remaining := 0
@@ -426,6 +450,8 @@ func loadVoteStateCmd(parent context.Context, client AudioClient, network string
 			trackID:  trackID,
 			liked:    info.Votes.WhoUpvoted.Contains(memberID),
 			disliked: info.Votes.WhoDownvoted.Contains(memberID),
+			voteUp:   info.Votes.Up,
+			voteDown: info.Votes.Down,
 		}
 	}
 }
@@ -515,5 +541,27 @@ func fetchFanartCmd(ctx context.Context, cache *fanart.Cache, url string, cols, 
 		}
 		cache.Put(url, escape)
 		return fanartReadyMsg{url: url, escape: escape}
+	}
+}
+
+// progressTickCmd triggers a 1-second re-render tick for the progress bar.
+// The handler re-arms while playerSt is StatePlaying; the chain dies
+// naturally when playback pauses or stops.
+func progressTickCmd() tea.Cmd {
+	return tea.Tick(time.Second, func(_ time.Time) tea.Msg {
+		return progressTickMsg{}
+	})
+}
+
+// fetchHistoryCmd fetches the recent track history for a channel.
+func fetchHistoryCmd(parent context.Context, client AudioClient, network string, channelID int64) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+		defer cancel()
+		tracks, err := client.ChannelHistory(ctx, network, channelID)
+		if err != nil {
+			return nil
+		}
+		return recentTracksMsg{tracks: tracks}
 	}
 }

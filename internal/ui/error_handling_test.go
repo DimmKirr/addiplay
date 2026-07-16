@@ -101,16 +101,14 @@ func TestStatusBar_showsErrorWhenPlayerStateError(t *testing.T) {
 	}
 }
 
-// TestHeader_showsLoggedInEmail verifies the header surfaces the user
-// identity (so people running multiple AudioAddict accounts know which
-// one is active and where the listen_key is sourced from).
-func TestHeader_showsLoggedInEmail(t *testing.T) {
+// TestHeader_showsUserIcon verifies the header surfaces a user identity
+// icon (email is hidden to save horizontal space; the icon confirms the
+// user is logged in).
+func TestHeader_showsUserIcon(t *testing.T) {
 	m := newTestModel(t)
 	view := m.View()
-	// demo.Creds() returns "demo@addiplay"; in production cmd/tui.go
-	// passes the actual creds.Load() result.
-	if !strings.Contains(view, "👤") || !strings.Contains(view, "demo@addiplay") {
-		t.Errorf("expected header to contain '👤 demo@addiplay'; view:\n%s", view)
+	if !strings.Contains(view, "👤") {
+		t.Errorf("expected header to contain user icon 👤; view:\n%s", view)
 	}
 }
 

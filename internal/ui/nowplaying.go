@@ -1,6 +1,10 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -30,13 +34,12 @@ const (
 	// dimensions everywhere; ASCII renders the same physical screen
 	// area, just at lower fidelity.
 	fanartCols = 30
-	fanartRows = 15
-	// artColumnWidth = pane border (2) + image border (2) + image
-	// (fanartCols) + 1 cell of room on EACH side so PlaceHorizontal
-	// can visibly centre the bordered image inside the pane content
-	// area. Without the extra 2 cells the bordered image fills the
-	// pane edge-to-edge and looks left-biased.
-	artColumnWidth = fanartCols + 6
+	fanartRows = 14
+	// artColumnWidth = pane border (2) + pane padding (2) + image border
+	// (2) + image (fanartCols) + 1 cell of room on EACH side so
+	// PlaceHorizontal can visibly centre the bordered image inside the
+	// pane content area.
+	artColumnWidth = fanartCols + 8
 
 	minWidthForArt = 100 // below this, drop the art column entirely
 
@@ -146,80 +149,206 @@ func (m *Model) refreshFanart(track audioaddict.Track, ch audioaddict.Channel) t
 }
 
 // renderNowPlaying draws the right-side column: bordered panel containing
-// (top to bottom) the channel artwork (or placeholder), channel name +
-// tagline, and the current track artist/title. Always exactly w cols /
-// h rows so it composes cleanly with the channel list to its left.
-//
-// Every section has a fallback so a missing field never produces a totally
-// blank pane — the user always has SOME context about what's playing.
+// (top to bottom) album art, track info with vote count, progress bar,
+// channel info with director and description, mode/quality badge, and
+// recent track history. Always exactly w cols / h rows so it composes
+// cleanly with the channel list to its left.
 func (m Model) renderNowPlaying(w, h int) string {
-	paneInnerW := w - 2 // pane border eats 2 cells
-	pane := m.st.paneFocused.Width(paneInnerW).Height(h - 2)
+	paneInnerW := w - 2
+	pane := m.st.paneFocused.
+		Padding(1, 1).
+		Width(paneInnerW).
+		Height(h - 2)
 
-	// Image block — fanart bytes (Unicode placeholders w/ diacritics in
-	// Kitty mode; half-block art in ASCII) if loaded, otherwise a coloured
-	// placeholder so the pane geometry stays stable across both states.
+	contentW := paneInnerW - 2 // padding inside pane
+
+	// --- Image block ---
 	image := m.fanartEscape
 	if image == "" {
-		dlog("renderNowPlaying: no fanartEscape — using placeholder (w=%d h=%d)", w, h)
 		image = fanart.Placeholder(fanartCols, fanartRows/2,
 			string(m.theme.BGAlt), string(m.theme.Accent))
-	} else {
-		dlog("renderNowPlaying: painting fanartEscape len=%d (w=%d h=%d)", len(image), w, h)
 	}
-	// Wrap in a thin outline so the album cover reads as a distinct
-	// container instead of bleeding into the rest of the pane. The
-	// border characters are normal text drawn by lipgloss; Kitty
-	// placeholders inside the border still encode their cell coords
-	// via diacritics, so the image renders at the bordered placeholder
-	// positions (1 cell right + 1 cell down from where the unbordered
-	// image used to land — that's the outline's interior space).
 	imageBox := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(m.theme.FGMuted).
 		Render(image)
-	// Centre horizontally within the pane. With artColumnWidth =
-	// fanartCols + 6 the bordered image is 2 cells narrower than the
-	// pane content, leaving 1 cell of room on each side after centring.
-	imageBox = lipgloss.PlaceHorizontal(paneInnerW, lipgloss.Center, imageBox)
+	imageBox = lipgloss.PlaceHorizontal(contentW, lipgloss.Center, imageBox)
 
-	label := m.st.nowPlaying.Bold(true).Render(channelLabel(m))
+	rows := []string{imageBox, ""}
 
-	// Channel tagline (description_short) when available.
-	tagline := ""
-	for _, ch := range m.channels {
-		if ch.Key == m.currentChannel && ch.DescriptionShort != "" {
-			tagline = m.st.muted.Padding(0, 1).Render(truncateLine(ch.DescriptionShort, w-4))
-			break
+	// --- Track info ---
+	switch {
+	case m.playerSt == player.StateError:
+		rows = append(rows, m.st.toast.Render(" stream error "))
+	case m.resolving || m.playerSt == player.StateLoading:
+		rows = append(rows, m.st.muted.Render("loading…"))
+	case m.currentTrack.Artist != "" || m.currentTrack.Title != "":
+		titleStr := m.st.nowPlaying.Bold(true).Render(
+			truncateLine(m.currentTrack.Title, contentW-6) + heartGlyph(m))
+		voteStr := ""
+		if m.voteUp > 0 {
+			voteStr = m.st.muted.Render(fmt.Sprintf("▲ %d", m.voteUp))
+		}
+		if voteStr != "" {
+			rows = append(rows, padRowTo(titleStr, voteStr, contentW))
+		} else {
+			rows = append(rows, titleStr)
+		}
+		rows = append(rows, m.st.muted.Padding(0, 1).Render(m.currentTrack.Artist))
+	case m.currentTrack.Track != "":
+		rows = append(rows, m.st.nowPlaying.Render(
+			truncateLine(m.currentTrack.Track, contentW-4)+heartGlyph(m)))
+	default:
+		rows = append(rows, m.st.muted.Padding(0, 1).Render("(no track info)"))
+	}
+
+	// --- Progress bar ---
+	if m.playerSt == player.StatePlaying || m.playerSt == player.StatePaused {
+		rows = append(rows, "")
+		rows = append(rows, m.renderProgressBar(contentW))
+	}
+
+	rows = append(rows, "")
+
+	// --- Channel info ---
+	ch := m.playingChannel()
+	rows = append(rows, lipgloss.NewStyle().Foreground(m.theme.FG).Bold(true).Render(channelLabel(m)))
+
+	if ch.ChannelDirector != "" {
+		rows = append(rows, m.st.muted.Render("curated by "+ch.ChannelDirector))
+	}
+
+	// Description — word-wrapped, up to 4 lines.
+	desc := firstNonEmptyStr(ch.Description, ch.DescriptionLong, ch.DescriptionShort)
+	if desc != "" {
+		wrapped := lipgloss.NewStyle().Width(contentW).Render(
+			m.st.muted.Render(desc))
+		lines := strings.Split(wrapped, "\n")
+		if len(lines) > 4 {
+			lines = lines[:4]
+		}
+		rows = append(rows, strings.Join(lines, "\n"))
+	}
+
+	rows = append(rows, "")
+
+	// --- Mode / quality / queue position badge ---
+	badges := m.renderBadges()
+	if badges != "" {
+		rows = append(rows, m.st.muted.Render(badges))
+	}
+
+	// --- Recent tracks ---
+	if len(m.recentTracks) > 0 {
+		rows = append(rows, "")
+		rows = append(rows, m.st.muted.Render("recently on this channel:"))
+		maxTracks := 5
+		if len(m.recentTracks) < maxTracks {
+			maxTracks = len(m.recentTracks)
+		}
+		for i := 0; i < maxTracks; i++ {
+			rt := m.recentTracks[i]
+			line := truncateLine("· "+rt.Track, contentW)
+			rows = append(rows, m.st.muted.Render(line))
 		}
 	}
 
-	// Track block — pick the most informative form available.
-	trackBlock := ""
-	switch {
-	case m.playerSt == player.StateError:
-		trackBlock = m.st.toast.Render(" stream error ")
-	case m.resolving || m.playerSt == player.StateLoading:
-		trackBlock = m.st.muted.Render("loading…")
-	case m.currentTrack.Artist != "" || m.currentTrack.Title != "":
-		trackBlock = lipgloss.JoinVertical(lipgloss.Left,
-			m.st.nowPlaying.Bold(true).Render(m.currentTrack.Artist+heartGlyph(m)),
-			m.st.muted.Padding(0, 1).Render(m.currentTrack.Title),
-		)
-	case m.currentTrack.Track != "":
-		trackBlock = m.st.nowPlaying.Render(m.currentTrack.Track + heartGlyph(m))
+	return pane.Render(lipgloss.JoinVertical(lipgloss.Left, rows...))
+}
+
+// playingChannel returns the Channel struct for the currently-playing channel.
+func (m Model) playingChannel() audioaddict.Channel {
+	for _, ch := range m.channels {
+		if ch.Key == m.currentChannel {
+			return ch
+		}
+	}
+	return audioaddict.Channel{}
+}
+
+// renderProgressBar draws a horizontal bar with elapsed/duration time.
+// In live mode (duration unknown), shows only elapsed time.
+func (m Model) renderProgressBar(w int) string {
+	var elapsed time.Duration
+	switch m.playerSt {
+	case player.StatePlaying:
+		if !m.trackStartTime.IsZero() {
+			elapsed = time.Since(m.trackStartTime)
+		}
+	case player.StatePaused:
+		elapsed = m.trackPauseElapsed
 	default:
-		trackBlock = m.st.muted.Padding(0, 1).Render("(no track info)")
+		return ""
 	}
 
-	// Two blank rows below the bordered image give the album cover
-	// breathing room before the channel label / track block start.
-	rows := []string{imageBox, "", "", label}
-	if tagline != "" {
-		rows = append(rows, tagline)
+	dur := time.Duration(m.currentTrack.Duration) * time.Second
+
+	if dur > 0 {
+		timeStr := fmt.Sprintf(" %s / %s", formatDuration(elapsed), formatDuration(dur))
+		barW := w - lipgloss.Width(timeStr)
+		if barW < 5 {
+			return m.st.muted.Render(timeStr)
+		}
+		frac := float64(elapsed) / float64(dur)
+		if frac > 1 {
+			frac = 1
+		}
+		if frac < 0 {
+			frac = 0
+		}
+		filled := int(frac * float64(barW))
+		empty := barW - filled
+		filledBar := lipgloss.NewStyle().Foreground(m.theme.Accent).Render(strings.Repeat("━", filled))
+		emptyBar := m.st.muted.Render(strings.Repeat("─", empty))
+		timePart := m.st.muted.Render(timeStr)
+		return filledBar + emptyBar + timePart
 	}
-	rows = append(rows, trackBlock)
-	return pane.Render(lipgloss.JoinVertical(lipgloss.Left, rows...))
+
+	return m.st.muted.Render(formatDuration(elapsed))
+}
+
+// renderBadges returns the mode/quality/queue-position line.
+func (m Model) renderBadges() string {
+	var parts []string
+	if m.trackQueue != nil {
+		parts = append(parts, "on-demand")
+	} else if m.currentChannel != "" {
+		parts = append(parts, "live")
+	}
+	if m.trackQueue != nil {
+		pos, total := m.trackQueue.Position()
+		if total > 0 {
+			parts = append(parts, fmt.Sprintf("track %d of %d", pos, total))
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, " · ")
+}
+
+func formatDuration(d time.Duration) string {
+	if d < 0 {
+		d = 0
+	}
+	d = d.Truncate(time.Second)
+	total := int(d.Seconds())
+	h := total / 3600
+	m := (total % 3600) / 60
+	s := total % 60
+	if h > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
+	}
+	return fmt.Sprintf("%d:%02d", m, s)
+}
+
+func firstNonEmptyStr(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 // heartGlyph returns the leading-space-prefixed vote indicator for the

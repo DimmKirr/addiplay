@@ -1,6 +1,17 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"os"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
+)
+
+func init() {
+	if os.Getenv("COLORTERM") == "truecolor" || os.Getenv("COLORTERM") == "24bit" {
+		lipgloss.SetColorProfile(termenv.TrueColor)
+	}
+}
 
 // Theme is the color palette for one AudioAddict network. Components read
 // the active Theme from the root model — never hardcode colors.
@@ -196,11 +207,11 @@ func newStyles(t Theme) styles {
 		header:      lipgloss.NewStyle().Foreground(t.FG).Padding(0, 1),
 		tabActive:   lipgloss.NewStyle().Foreground(t.Accent).Bold(true).Underline(true).Padding(0, 1),
 		tabInactive: lipgloss.NewStyle().Foreground(t.FGMuted).Padding(0, 1),
-		paneFocused: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(t.Pop),
+		paneFocused: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(t.Accent),
 		paneBlurred: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(t.FGMuted),
 		nowPlaying:  lipgloss.NewStyle().Padding(0, 1),
 		channelRow:  lipgloss.NewStyle().Foreground(t.FG).Padding(0, 1),
-		channelSel:  lipgloss.NewStyle().Foreground(t.BG).Background(t.Secondary).Bold(true).Padding(0, 1),
+		channelSel:  lipgloss.NewStyle().Foreground(t.Accent).Bold(true).Padding(0, 1),
 		statusBar:   lipgloss.NewStyle().Background(t.BGAlt).Foreground(t.FG).Padding(0, 1),
 		keyHint:     lipgloss.NewStyle().Foreground(t.FGMuted),
 		toast:       lipgloss.NewStyle().Background(t.Error).Foreground(t.FG).Padding(0, 1).Bold(true),

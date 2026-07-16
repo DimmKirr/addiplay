@@ -10,7 +10,11 @@ import (
 // cluster), the logged-in user's email + key hints (right cluster),
 // padded to exactly m.width columns.
 func renderHeader(m Model) string {
-	app := m.st.header.Bold(true).Render("addiplay")
+	appName := "addiplay"
+	if m.width < 100 {
+		appName = "add"
+	}
+	app := m.st.header.Bold(true).Render(appName)
 	badge := m.st.accentBlock.Render(m.theme.Display)
 
 	tabFavs := m.st.tabInactive.Render("FAVORITES")
@@ -23,8 +27,8 @@ func renderHeader(m Model) string {
 	}
 	tabs := lipgloss.JoinHorizontal(lipgloss.Top, tabAll, "  ", tabFavs)
 
-	user := m.st.muted.Render("👤 " + m.creds.Email)
-	hints := m.st.keyHint.Render("[n] network   [/] filter   [?] keys   [q] quit")
+	user := m.st.muted.Render("👤")
+	hints := m.st.keyHint.Render("[?] keys   [q] quit")
 	rightCluster := lipgloss.JoinHorizontal(lipgloss.Top, user, "   ", hints)
 
 	leftCluster := lipgloss.JoinHorizontal(lipgloss.Top, app, " ", badge, "   ", tabs)

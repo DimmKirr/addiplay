@@ -117,6 +117,15 @@ func (c *FakeClient) CurrentlyPlaying(_ context.Context, _ string, channelID int
 	return t, nil
 }
 
+// ChannelHistory implements ui.AudioClient.
+func (c *FakeClient) ChannelHistory(_ context.Context, _ string, channelID int64) ([]audioaddict.Track, error) {
+	t, err := c.CurrentlyPlaying(context.Background(), "", channelID)
+	if err != nil {
+		return nil, err
+	}
+	return []audioaddict.Track{t}, nil
+}
+
 // Authenticate implements ui.AudioClient. Returns a canned demo Member
 // that mirrors the demo creds (demo.Creds()), so the login overlay flow
 // can be exercised in demo / screencast / test mode without hitting the

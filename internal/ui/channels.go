@@ -36,7 +36,7 @@ func renderChannels(m Model, w, h int) string {
 		header = m.searchInput.View()
 	} else {
 		count := len(m.visibleChannels())
-		header = m.st.muted.Render(fmt.Sprintf("%d channels — j/k move, enter play, / search, tab favs", count))
+		header = m.st.muted.Render(fmt.Sprintf("%d channels", count))
 	}
 
 	rows := []string{header, m.st.muted.Render(strings.Repeat("─", maxInt(w-4, 4)))}
@@ -90,7 +90,7 @@ func renderChannels(m Model, w, h int) string {
 
 	// Footer hint about hidden items so users know there's more below/above.
 	if end < len(vis) || start > 0 {
-		more := fmt.Sprintf("⋮ showing %d–%d of %d — PgDn pages, / searches", start+1, end, len(vis))
+		more := fmt.Sprintf("⋮ %d–%d of %d", start+1, end, len(vis))
 		rows = append(rows, m.st.muted.Render(more))
 	}
 
@@ -110,7 +110,7 @@ func renderCard(m Model, ch audioaddict.Channel, selected, playing bool, width i
 	// in the theme accent; everything else uses a muted normal border so
 	// the cursor card visually pops.
 	borderStyle := lipgloss.NormalBorder()
-	borderColor := lipgloss.Color(string(m.theme.FGMuted))
+	borderColor := m.theme.FGMuted
 	bg := lipgloss.NoColor{}
 	var cardBg lipgloss.TerminalColor = bg
 	if selected {
@@ -200,9 +200,9 @@ func buildCardTitle(m Model, ch audioaddict.Channel, selected, playing bool, w i
 		case player.StatePlaying:
 			right = lipgloss.NewStyle().Foreground(m.theme.Accent).Bold(true).Render("▶ playing")
 		case player.StatePaused:
-			right = m.st.muted.Render("⏸ paused")
+			right = m.st.muted.Render("‖ paused")
 		case player.StateLoading:
-			right = m.st.muted.Render("◐ loading")
+			right = m.st.muted.Render("⠋ loading")
 		case player.StateError:
 			right = lipgloss.NewStyle().Foreground(m.theme.Error).Render("✗ error")
 		}
@@ -247,11 +247,8 @@ func buildCardTrackRows(m Model, ch audioaddict.Channel, playing bool, w int) (a
 		artist = m.st.muted.Render(labelPrefix + "(no track info)")
 		title = m.st.muted.Render("")
 	} else {
-		// TODO: per-channel now-playing requires polling /currently_playing
-		// for ALL channels on the network and stashing the results in
-		// Model.tracks[channelID]. Single API call, but adds plumbing.
-		artist = m.st.muted.Render(labelPrefix + "—")
-		title = m.st.muted.Render("")
+		artist = ""
+		title = ""
 	}
 	_ = ch
 	_ = w
