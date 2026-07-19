@@ -168,7 +168,7 @@ func (c *FakeClient) SkipTrack(_ context.Context, _ string, _, _ int64, _, _ int
 	return &audioaddict.SkipResponse{SkipsRemaining: 5}, nil
 }
 
-func (c *FakeClient) FetchRoutine(_ context.Context, _ string, _ int64, _ bool) ([]audioaddict.RoutineTrack, error) {
+func (c *FakeClient) FetchRoutine(_ context.Context, _ string, _ int64, _ bool) (*audioaddict.RoutineResult, error) {
 	return nil, fmt.Errorf("demo: routine not supported")
 }
 

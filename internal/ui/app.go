@@ -69,7 +69,7 @@ type AudioClient interface {
 	DislikeTrack(ctx context.Context, network string, trackID, channelID int64) error
 	UnlikeTrack(ctx context.Context, network string, trackID, channelID int64) error
 	SkipTrack(ctx context.Context, network string, trackID, channelID int64, trackLength, skippedAt int) (*audioaddict.SkipResponse, error)
-	FetchRoutine(ctx context.Context, network string, channelID int64, tuneIn bool) ([]audioaddict.RoutineTrack, error)
+	FetchRoutine(ctx context.Context, network string, channelID int64, tuneIn bool) (*audioaddict.RoutineResult, error)
 	// FetchTrack reads /tracks/<id> and carries the bloom filters used
 	// to detect whether the current member has voted on this track.
 	FetchTrack(ctx context.Context, network string, trackID int64) (*audioaddict.TrackInfo, error)
@@ -278,7 +278,7 @@ func NewModel(ctx context.Context, c creds.Session, client AudioClient, newPlaye
 // Init returns the bootstrap command — start the player and load channels.
 func (m Model) Init() tea.Cmd {
 	dlog("Init dispatching initPlayer + loadChannels(net=%s)", m.currentNetwork)
-	return tea.Batch(initPlayerCmd(m.ctx, m.newPlayer), loadChannelsCmd(m.ctx, m.client, m.currentNetwork))
+	return tea.Batch(initPlayerCmd(m.ctx, m.newPlayer), loadChannelsCmd(m.ctx, m.client, m.currentNetwork), sessionCheckCmd(m.ctx, m.client, m.currentNetwork))
 }
 
 // Update is the single entry-point. It first handles domain events (player,
@@ -342,12 +342,15 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
 
 	case playerErrorMsg:
+		dlog("playerErrorMsg: %v", msg.err)
 		m.toast = msg.err.Error()
 		m.loading = false
+		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
 
 	case playerStateMsg:
 		prevSt := m.playerSt
 		m.playerSt = msg.state
+		dlog("playerStateMsg: %s → %s", prevSt, msg.state)
 		m.loading = msg.state == player.StateLoading
 		if msg.state == player.StatePlaying {
 			m.toast = ""
@@ -360,12 +363,20 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		if msg.state == player.StatePaused && prevSt == player.StatePlaying {
 			m.trackPauseElapsed = time.Since(m.trackStartTime)
 		}
-		if msg.state == player.StateIdle && m.trackQueue != nil && m.currentChannel != "" {
-			chID := channelIDFromKey(m.channels, m.currentChannel)
-			ch, ok := channelByID(m.channels, chID)
-			if ok {
-				dlog("playerStateMsg: idle in per-track mode — auto-advancing")
-				cmds = append(cmds, advanceTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, ch, m.trackQueue))
+		if msg.state == player.StateIdle {
+			if m.trackQueue == nil {
+				dlog("playerStateMsg: idle but trackQueue is nil — no auto-advance")
+			} else if m.currentChannel == "" {
+				dlog("playerStateMsg: idle but currentChannel is empty — no auto-advance")
+			} else {
+				chID := channelIDFromKey(m.channels, m.currentChannel)
+				ch, ok := channelByID(m.channels, chID)
+				if ok {
+					dlog("playerStateMsg: idle — auto-advancing (ch=%s remaining=%d)", ch.Key, m.trackQueue.Remaining())
+					cmds = append(cmds, advanceTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, ch, m.trackQueue))
+				} else {
+					dlog("playerStateMsg: idle but channelByID(%d) not found in %d channels — no auto-advance", chID, len(m.channels))
+				}
 			}
 		}
 		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
@@ -453,7 +464,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 		m.statusInfo = fmt.Sprintf("on-demand (%d tracks queued)", q.Remaining())
-			cmds = append(cmds, clearStatusInfoCmd())
+		cmds = append(cmds, clearStatusInfoCmd())
+		if cmd := scheduleSessionExpiryCmd(msg.expiresOn); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 
 	case streamPlayingMsg:
 		m.resolving = false
@@ -558,6 +572,8 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 	case progressTickMsg:
 		if m.playerSt == player.StatePlaying {
 			cmds = append(cmds, progressTickCmd())
+		} else {
+			dlog("progressTickMsg: NOT re-arming — playerSt=%s", m.playerSt)
 		}
 
 	case recentTracksMsg:
@@ -635,6 +651,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			m.voteInFlight = true
 			cmds = append(cmds, voteCmd(m.ctx, m.client, pv.network, pv.trackID, pv.channelID, pv.dir))
 		}
+		cmds = append(cmds, sessionCheckCmd(m.ctx, m.client, m.currentNetwork))
 		if m.pendingSkip != nil {
 			ps := m.pendingSkip
 			m.pendingSkip = nil
@@ -762,6 +779,26 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		if err := m.cfg.Save(); err != nil {
 			dlog("voteOKMsg: cfg.Save FAIL err=%v", err)
 		}
+
+	case trackErrorMsg:
+		if msg.unauthorized {
+			dlog("trackErrorMsg: unauthorized — popping login overlay")
+			m.toast = "session expired — sign in again"
+			m = m.initLoginInputs(false)
+		}
+
+	case sessionCheckMsg:
+		if !msg.alive {
+			dlog("sessionCheckMsg: health check FAILED — err=%v", msg.err)
+			m.toast = "session expired — sign in again"
+			m = m.initLoginInputs(false)
+		}
+		cmds = append(cmds, sessionCheckCmd(m.ctx, m.client, m.currentNetwork))
+
+	case sessionExpiryMsg:
+		dlog("sessionExpiryMsg: audio_token approaching expiry — popping login")
+		m.toast = "session expiring soon — sign in again for uninterrupted playback"
+		m = m.initLoginInputs(false)
 
 	case voteErrMsg:
 		m.voteInFlight = false

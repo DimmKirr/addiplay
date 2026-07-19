@@ -110,11 +110,19 @@ type routineResponse struct {
 	Tracks     []RoutineTrack `json:"tracks"`
 }
 
+// RoutineResult wraps the routine tracks with server-provided metadata.
+// ExpiresOn is the audio_token expiry timestamp from the API response —
+// the UI uses it to schedule proactive re-auth before the token lapses.
+type RoutineResult struct {
+	Tracks    []RoutineTrack
+	ExpiresOn string
+}
+
 // FetchRoutine calls GET /v1/<network>/routines/channel/<channelID> with
 // the stored audio_token. Returns the batch of on-demand tracks. tuneIn=true
 // on the first call for a channel (signals a new listening session); false
 // when refilling the queue.
-func (c *Client) FetchRoutine(ctx context.Context, network string, channelID int64, tuneIn bool) ([]RoutineTrack, error) {
+func (c *Client) FetchRoutine(ctx context.Context, network string, channelID int64, tuneIn bool) (*RoutineResult, error) {
 	sess := c.currentSession()
 	if sess.AudioToken == "" {
 		return nil, fmt.Errorf("audioaddict: audio_token not available — re-login required")
@@ -143,7 +151,7 @@ func (c *Client) FetchRoutine(ctx context.Context, network string, channelID int
 	}
 	dlogf(c.Debug, "FetchRoutine OK tracks=%d routine_id=%s expires=%s",
 		len(resp.Tracks), resp.RoutineID, resp.ExpiresOn)
-	return resp.Tracks, nil
+	return &RoutineResult{Tracks: resp.Tracks, ExpiresOn: resp.ExpiresOn}, nil
 }
 
 // TrackQueue manages a FIFO of on-demand tracks for a single channel.

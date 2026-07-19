@@ -1,190 +1,247 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace">
-  <title>ADDIPLAY — Play screen (now playing)</title>
-  <desc>Wireframe: channel selected, stream playing; channel list shrinks to leave room for the art column.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 860"
+     font-family="'JetBrains Mono', monospace">
+  <title>ADDIPLAY — Now Playing (120×45)</title>
+  <desc>Grid: CW=8.5 CH=16. 120 cols × 45 rows.
+  col(c)=c*8.5  row(r)=r*16  baseline(r)=r*16+12
+  Left: cols 0–81 (82 cols). Right: cols 82–119 (38 cols).
+  Pane: rows 1–40 (border at 1,40; content 2–39). Status: rows 42–43.</desc>
 
   <defs>
-    <!-- album-cover placeholder gradient: stand-in for the actual fanart image -->
-    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1">
+    <pattern id="grid-cell" width="8.5" height="16" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="16" stroke="#ff4444" stroke-width="0.3" opacity="0.15"/>
+      <line x1="0" y1="0" x2="8.5" y2="0" stroke="#ff4444" stroke-width="0.3" opacity="0.15"/>
+    </pattern>
+    <pattern id="grid-major" width="85" height="80" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="80" stroke="#ff4444" stroke-width="0.8" opacity="0.3"/>
+      <line x1="0" y1="0" x2="85" y2="0" stroke="#ff4444" stroke-width="0.8" opacity="0.3"/>
+    </pattern>
+
+    <linearGradient id="thumbGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a3a2a"/>
+      <stop offset="100%" stop-color="#2aaa6a"/>
+    </linearGradient>
+    <linearGradient id="thumbRed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5a1a1a"/>
+      <stop offset="100%" stop-color="#cc3344"/>
+    </linearGradient>
+    <linearGradient id="thumbBlue" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a3a7a"/>
-      <stop offset="50%" stop-color="#288cfb"/>
-      <stop offset="100%" stop-color="#0a1530"/>
+      <stop offset="100%" stop-color="#288cfb"/>
+    </linearGradient>
+    <linearGradient id="thumbGrain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.20"/>
+    </linearGradient>
+    <linearGradient id="coverMist" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c0c8d0"/>
+      <stop offset="40%" stop-color="#8090a0"/>
+      <stop offset="70%" stop-color="#506070"/>
+      <stop offset="100%" stop-color="#303840"/>
     </linearGradient>
     <linearGradient id="coverGrain" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.15"/>
     </linearGradient>
   </defs>
 
-  <rect width="1100" height="720" fill="#f7f8fa"/>
+  <rect width="1100" height="860" fill="#f7f8fa"/>
 
-  <text x="28" y="38" font-size="14" fill="#6b7280" font-weight="500" letter-spacing="0.08em">PLAY · NOW PLAYING</text>
-  <text x="28" y="58" font-size="11" fill="#9aa3b2">Channel is streaming. Right column shows the per-track album cover (track_history.art_url), falling back to channel art when absent.</text>
+  <text x="28" y="38" font-size="14" fill="#6b7280" font-weight="500" letter-spacing="0.08em">PLAY · NOW PLAYING (120×45)</text>
+  <text x="28" y="58" font-size="11" fill="#9aa3b2">Grid: CW=8.5 CH=16. Pane border rows 1,40. Status rows 42-43. Toggle #grid-overlay.</text>
 
   <g transform="translate(28,80)">
-    <rect x="2" y="3" width="1044" height="592" rx="10" fill="#000" opacity="0.07"/>
+    <!-- macOS CHROME -->
+    <rect x="2" y="3" width="1044" height="750" rx="10" fill="#000" opacity="0.07"/>
     <rect x="0" y="0" width="1044" height="28" rx="10" fill="#1f2632"/>
     <rect x="0" y="14" width="1044" height="14" fill="#1f2632"/>
     <circle cx="16" cy="14" r="6" fill="#ff5f57"/>
     <circle cx="36" cy="14" r="6" fill="#febc2e"/>
     <circle cx="56" cy="14" r="6" fill="#28c840"/>
-    <text x="522" y="18" text-anchor="middle" font-size="10" fill="#6b7280">addiplay · classic trance</text>
+    <text x="522" y="18" text-anchor="middle" font-size="10" fill="#6b7280">addiplay · chillout</text>
 
-    <rect x="0" y="28" width="1044" height="564" fill="#151b25"/>
+    <!-- TERMINAL BODY -->
+    <rect x="0" y="28" width="1044" height="722" fill="#151b25"/>
 
-    <g transform="translate(12,40)" font-size="14" fill="#e6e6e6" xml:space="preserve">
+    <!-- ================================================================ -->
+    <!-- CONTENT — 120×45. CW=8.5 CH=16.                                 -->
+    <!--   col(c)=c*8.5  row(r)=r*16  baseline(r)=r*16+12               -->
+    <!--   Content: 1020×720                                              -->
+    <!--                                                                  -->
+    <!--   Layout from code:                                              -->
+    <!--     innerH = height-5 = 40                                       -->
+    <!--     Pane border top: row 1                                       -->
+    <!--     Pane content: rows 2-39 (38 rows)                            -->
+    <!--       bodyH = 38-4 = 34 → cardsPerView = 3                      -->
+    <!--     Pane border bottom: row 40                                   -->
+    <!--     Status bar: rows 42-43                                       -->
+    <!-- ================================================================ -->
+    <g transform="translate(12,30)" font-size="13" fill="#e6e6e6" xml:space="preserve">
 
-      <!-- HEADER -->
-      <rect x="0" y="-13" width="42" height="18" fill="#288cfb"/>
-      <text x="4" y="0" fill="#151b25" font-weight="700">ADDIPLAY</text>
-      <text x="51" y="0" fill="#e6e6e6" font-weight="700">DI.FM</text>
-      <text x="110" y="0" fill="#888">·</text>
-      <text x="125" y="0" fill="#288cfb" font-weight="700" text-decoration="underline">All</text>
-      <text x="156" y="0" fill="#888">Favorites</text>
-      <text x="1015" y="0" text-anchor="end" fill="#888">▶  playing</text>
+      <!-- ============================================================ -->
+      <!-- ROW 0: HEADER                                                -->
+      <!-- ============================================================ -->
+      <rect x="0" y="0" width="1020" height="16" fill="#1a212e"/>
+      <text x="0" y="12" fill="#e6e6e6" font-weight="700">addiplay</text>
+      <rect x="68" y="2" width="42.5" height="12" rx="2" fill="#288cfb"/>
+      <text x="72" y="12" fill="#ffffff" font-weight="700" font-size="10">DI.fm</text>
+      <text x="127.5" y="12" fill="#555">ALL</text>
+      <text x="170" y="12" fill="#288cfb" font-weight="700">◆ FAVORITES ◆</text>
+      <text x="909.5" y="12" fill="#555">[?] keys  [q] quit</text>
 
-      <!-- BODY: channel list (left) + art column (right) -->
+      <!-- ============================================================ -->
+      <!-- LEFT PANEL — rows 1–40 (border at 1 &amp; 40)                -->
+      <!-- 40 rows × 16px = 640px. Content rows 2–39 (38 rows).         -->
+      <!-- ============================================================ -->
+      <rect x="0" y="16" width="697" height="640" rx="3" fill="none" stroke="#288cfb" stroke-width="1"/>
 
-      <!-- LEFT: channel list, narrower -->
-      <g transform="translate(0,18)">
-        <text x="0" y="0" fill="#288cfb">╭─ Channels ────────────────────────────────────────────────────────────────╮</text>
+      <!-- ROW 2: pane header — baseline(2)=44 -->
+      <text x="8.5" y="44" fill="#555" font-size="12">5 channels</text>
 
-        <rect x="9" y="6" width="630" height="20" fill="#288cfb"/>
-        <text x="14" y="20" fill="#151b25" font-weight="700">▸ Classic Trance</text>
-        <text x="640" y="20" fill="#151b25">★</text>
+      <!-- ROW 3: separator — baseline(3)=60 -->
+      <text x="8.5" y="60" fill="#2a3344">──────────────────────────────────────────────────────────────────────────────────</text>
 
-        <text x="0"  y="40" fill="#288cfb">│</text>
-        <text x="14" y="40">  Vocal Trance</text>
-        <text x="654" y="40" fill="#288cfb">│</text>
+      <!-- ======================================== -->
+      <!-- CARD 1 — rows 4–13: Drum and Bass        -->
+      <!-- rect: y=row(4)=64, h=160                 -->
+      <!-- ======================================== -->
+      <rect x="8.5" y="64" width="680" height="160" rx="3" fill="#1a212e" stroke="#2a3344" stroke-width="1"/>
+      <rect x="17" y="80" width="136" height="128" rx="3" fill="url(#thumbGreen)"/>
+      <rect x="17" y="80" width="136" height="128" rx="3" fill="url(#thumbGrain)"/>
+      <!-- Row 5: title — baseline=92 -->
+      <text x="161.5" y="92" fill="#e6e6e6" font-weight="700">  Drum and Bass</text>
+      <text x="289" y="92" fill="#f9dc00">★</text>
+      <!-- Row 6: tagline — baseline=108 -->
+      <text x="161.5" y="108" fill="#555">Born in the mid 90s, Drum and Bass / DnB is all about ...</text>
+      <!-- Row 7: separator — baseline=124 -->
+      <text x="161.5" y="124" fill="#2a3344">──────────────────────────────────────────────────────</text>
 
-        <text x="0"  y="60" fill="#288cfb">│</text>
-        <text x="14" y="60">  Progressive</text>
-        <text x="654" y="60" fill="#288cfb">│</text>
+      <!-- ======================================== -->
+      <!-- CARD 2 — rows 14–23: Hardstyle (SELECTED) -->
+      <!-- rect: y=row(14)=224, h=160                -->
+      <!-- ======================================== -->
+      <rect x="8.5" y="224" width="680" height="160" rx="6" fill="#212737" stroke="#288cfb" stroke-width="1.5"/>
+      <rect x="17" y="240" width="136" height="128" rx="3" fill="url(#thumbRed)"/>
+      <rect x="17" y="240" width="136" height="128" rx="3" fill="url(#thumbGrain)"/>
+      <!-- Row 15: title — baseline=252 -->
+      <text x="161.5" y="252" fill="#288cfb" font-weight="700">▸ Hardstyle</text>
+      <text x="255" y="252" fill="#f9dc00">★</text>
+      <!-- Row 16: tagline — baseline=268 -->
+      <text x="161.5" y="268" fill="#555">Hard techno &amp; hardcore. A global phenomenon with power...</text>
+      <!-- Row 17: separator — baseline=284 -->
+      <text x="161.5" y="284" fill="#2a3344">──────────────────────────────────────────────────────</text>
 
-        <text x="0"  y="80" fill="#288cfb">│</text>
-        <text x="14" y="80">  Trance</text>
-        <text x="654" y="80" fill="#288cfb">│</text>
+      <!-- ======================================== -->
+      <!-- CARD 3 — rows 24–33: XExposure NYC        -->
+      <!-- rect: y=row(24)=384, h=160                -->
+      <!-- ======================================== -->
+      <rect x="8.5" y="384" width="680" height="160" rx="3" fill="#1a212e" stroke="#2a3344" stroke-width="1"/>
+      <rect x="17" y="400" width="136" height="128" rx="3" fill="url(#thumbBlue)"/>
+      <rect x="17" y="400" width="136" height="128" rx="3" fill="url(#thumbGrain)"/>
+      <!-- Row 25: title — baseline=412 -->
+      <text x="161.5" y="412" fill="#e6e6e6" font-weight="700">  XExposure NYC</text>
+      <text x="289" y="412" fill="#f9dc00">★</text>
+      <!-- Row 26: tagline — baseline=428 -->
+      <text x="161.5" y="428" fill="#555">A fine selection of New York City sounds!</text>
+      <!-- Row 27: separator — baseline=444 -->
+      <text x="161.5" y="444" fill="#2a3344">──────────────────────────────────────────────────────</text>
 
-        <text x="0"  y="100" fill="#288cfb">│</text>
-        <text x="14" y="100">  Psybient</text>
-        <text x="654" y="100" fill="#288cfb">│</text>
+      <!-- ROW 34: scroll hint — baseline(34)=556 -->
+      <text x="8.5" y="556" fill="#555" font-size="11">⋮ 3–5 of 5</text>
 
-        <text x="0"  y="120" fill="#288cfb">│</text>
-        <text x="14" y="120">  Hard Dance</text>
-        <text x="654" y="120" fill="#288cfb">│</text>
+      <!-- ============================================================ -->
+      <!-- RIGHT PANEL — cols 82–119, rows 1–40 (640px)                 -->
+      <!-- Content rows 2–39. Padding(1,1) → content rows 3–38.         -->
+      <!-- Content width: 34 cols (col 84–117).                          -->
+      <!-- Right-align anchor: x=col(118)=1003.                         -->
+      <!-- ============================================================ -->
+      <rect x="697" y="16" width="323" height="640" rx="3" fill="none" stroke="#288cfb" stroke-width="1"/>
 
-        <text x="0"  y="140" fill="#288cfb">│</text>
-        <text x="14" y="140">  DJ Mixes</text>
-        <text x="654" y="140" fill="#288cfb">│</text>
+      <!-- ART FRAME: rows 3–18, 16 rows → 256px                        -->
+      <!-- Centered: col 85 (x=722.5), w=272                            -->
+      <rect x="722.5" y="48" width="272" height="256" rx="2" fill="none" stroke="#2a3344" stroke-width="1"/>
+      <!-- ART FILL: rows 4–17, 14 rows → 224px                         -->
+      <rect x="731" y="64" width="255" height="224" fill="url(#coverMist)"/>
+      <rect x="731" y="64" width="255" height="224" fill="url(#coverGrain)"/>
 
-        <text x="0"  y="160" fill="#288cfb">│</text>
-        <text x="14" y="160">  Vocal Lounge</text>
-        <text x="654" y="160" fill="#288cfb">│</text>
+      <!-- Row 20: track title + vote — baseline=332 -->
+      <text x="714" y="332" fill="#e6e6e6" font-weight="700">Reaktion - Remastered</text>
+      <text x="1003" y="332" text-anchor="end" fill="#555">▲ 303</text>
 
-        <text x="0"  y="180" fill="#288cfb">│</text>
-        <text x="14" y="180">  Future Garage</text>
-        <text x="654" y="180" fill="#288cfb">│</text>
+      <!-- Row 21: artist (1-col indent) — baseline=348 -->
+      <text x="722.5" y="348" fill="#555">Carbon Based Lifeforms</text>
 
-        <text x="0"  y="200" fill="#288cfb">│</text>
-        <text x="14" y="200">  Liquid DnB</text>
-        <text x="654" y="200" fill="#288cfb">│</text>
+      <!-- Row 23: progress bar — baseline=380 -->
+      <text x="714" y="380" fill="#288cfb">━━━━━━</text>
+      <text x="765" y="380" fill="#2a3344">───────────────</text>
+      <text x="1003" y="380" text-anchor="end" fill="#555" font-size="11">1:31 / 5:53</text>
 
-        <text x="0"  y="220" fill="#288cfb">│</text>
-        <text x="14" y="220">  Chillout</text>
-        <text x="640" y="220" fill="#888">  ★</text>
-        <text x="654" y="220" fill="#288cfb">│</text>
+      <!-- Row 25: channel name — baseline=412 -->
+      <text x="714" y="412" fill="#e6e6e6" font-weight="700">Chillout</text>
 
-        <text x="0"  y="240" fill="#288cfb">│</text>
-        <text x="14" y="240">  Deep House</text>
-        <text x="640" y="240" fill="#888">  ★</text>
-        <text x="654" y="240" fill="#288cfb">│</text>
+      <!-- Row 26: curator — baseline=428 -->
+      <text x="714" y="428" fill="#555">curated by Solarsoul</text>
 
-        <text x="0"  y="260" fill="#288cfb">│</text>
-        <text x="654" y="260" fill="#288cfb">│</text>
-        <text x="0"  y="280" fill="#288cfb">│</text>
-        <text x="654" y="280" fill="#288cfb">│</text>
-        <text x="0"  y="300" fill="#288cfb">│</text>
-        <text x="654" y="300" fill="#288cfb">│</text>
-        <text x="0"  y="320" fill="#288cfb">│</text>
-        <text x="654" y="320" fill="#288cfb">│</text>
-        <text x="0"  y="340" fill="#888" font-style="italic">│   ⋮ scroll for more</text>
-        <text x="654" y="340" fill="#288cfb">│</text>
-        <text x="0"  y="360" fill="#288cfb">│</text>
-        <text x="654" y="360" fill="#288cfb">│</text>
+      <!-- Rows 27–30: description (word-wrapped) -->
+      <text x="714" y="444" fill="#555">Electronic sounds, mellow mid-</text>
+      <text x="714" y="460" fill="#555">tempo rhythms, and a groove</text>
+      <text x="714" y="476" fill="#555">meant to calm the senses and</text>
+      <text x="714" y="492" fill="#555">ease the mind.</text>
 
-        <text x="0" y="380" fill="#288cfb">╰───────────────────────────────────────────────────────────────────────────╯</text>
+      <!-- Row 32: mode badge — baseline=524 -->
+      <text x="714" y="524" fill="#555">on-demand · track 2 of 5</text>
+
+      <!-- ============================================================ -->
+      <!-- STATUS BAR — rows 42–43                                      -->
+      <!-- ============================================================ -->
+      <rect x="0" y="672" width="1020" height="16" fill="#212737"/>
+      <text x="8.5" y="684" fill="#e6e6e6">▶  Chillout ★ · Carbon Based Lifeforms - Reaktion - Remastered</text>
+      <text x="1011.5" y="684" text-anchor="end" fill="#e6e6e6">on-demand  vol 100%</text>
+
+      <rect x="0" y="688" width="1020" height="16" fill="#212737"/>
+      <text x="8.5" y="700" fill="#555">[enter] play   [space] pause   [l] like   [/] search   [?] more</text>
+
+      <!-- ============================================================ -->
+      <!-- GRID OVERLAY — set display="inline" to show                  -->
+      <!-- ============================================================ -->
+      <g id="grid-overlay" display="none">
+        <rect x="0" y="0" width="1020" height="720" fill="url(#grid-cell)"/>
+        <rect x="0" y="0" width="1020" height="720" fill="url(#grid-major)"/>
+        <line x1="697" y1="0" x2="697" y2="720" stroke="#00ff00" stroke-width="1" opacity="0.5"/>
+        <line x1="161.5" y1="64" x2="161.5" y2="544" stroke="#ffff00" stroke-width="0.5" opacity="0.4"/>
+
+        <g font-size="7" fill="#ff4444" opacity="0.7">
+          <text x="0" y="-2">c0</text>
+          <text x="85" y="-2">c10</text>
+          <text x="170" y="-2">c20</text>
+          <text x="255" y="-2">c30</text>
+          <text x="340" y="-2">c40</text>
+          <text x="425" y="-2">c50</text>
+          <text x="510" y="-2">c60</text>
+          <text x="595" y="-2">c70</text>
+          <text x="680" y="-2">c80</text>
+          <text x="697" y="-2" fill="#00ff00">c82</text>
+          <text x="765" y="-2">c90</text>
+          <text x="850" y="-2">c100</text>
+          <text x="935" y="-2">c110</text>
+          <text x="1012" y="-2">c120</text>
+        </g>
+        <g font-size="7" fill="#ff4444" opacity="0.7" text-anchor="end">
+          <text x="-2" y="12">r0</text>
+          <text x="-2" y="92">r5</text>
+          <text x="-2" y="172">r10</text>
+          <text x="-2" y="252">r15</text>
+          <text x="-2" y="332">r20</text>
+          <text x="-2" y="412">r25</text>
+          <text x="-2" y="492">r30</text>
+          <text x="-2" y="572">r35</text>
+          <text x="-2" y="652">r40</text>
+          <text x="-2" y="700">r43</text>
+        </g>
       </g>
 
-      <!-- RIGHT: art column / now-playing panel -->
-      <g transform="translate(674,18)">
-        <text x="0" y="0" fill="#288cfb">╭─ Now Playing ───────────────────────────╮</text>
-
-        <!-- album art block (square; 30 cells wide × 15 rows ≈ 256x270 px in mockup) -->
-        <rect x="14" y="14" width="318" height="220" fill="url(#cover)"/>
-        <rect x="14" y="14" width="318" height="220" fill="url(#coverGrain)"/>
-        <!-- art label tucked bottom-right of the cover so it reads as "image placeholder" -->
-        <text x="324" y="226" text-anchor="end" font-size="10" fill="#e6e6e6" opacity="0.7">album cover · 217×217</text>
-
-        <!-- channel label (bold, accent) -->
-        <text x="14" y="262" fill="#e6e6e6" font-weight="700">Classic Trance</text>
-        <!-- channel tagline -->
-        <text x="14" y="280" fill="#888">the classics that built the genre</text>
-
-        <!-- spacer -->
-
-        <!-- track: artist (bold) + title (muted) -->
-        <text x="14" y="312" fill="#e6e6e6" font-weight="700">FilterFunk</text>
-        <text x="22" y="332" fill="#888">S.O.S. (Message In A Bottle)</text>
-
-        <!-- border verticals -->
-        <text x="0"   y="40"  fill="#288cfb">│</text>
-        <text x="346" y="40"  fill="#288cfb">│</text>
-        <text x="0"   y="60"  fill="#288cfb">│</text>
-        <text x="346" y="60"  fill="#288cfb">│</text>
-        <text x="0"   y="80"  fill="#288cfb">│</text>
-        <text x="346" y="80"  fill="#288cfb">│</text>
-        <text x="0"   y="100" fill="#288cfb">│</text>
-        <text x="346" y="100" fill="#288cfb">│</text>
-        <text x="0"   y="120" fill="#288cfb">│</text>
-        <text x="346" y="120" fill="#288cfb">│</text>
-        <text x="0"   y="140" fill="#288cfb">│</text>
-        <text x="346" y="140" fill="#288cfb">│</text>
-        <text x="0"   y="160" fill="#288cfb">│</text>
-        <text x="346" y="160" fill="#288cfb">│</text>
-        <text x="0"   y="180" fill="#288cfb">│</text>
-        <text x="346" y="180" fill="#288cfb">│</text>
-        <text x="0"   y="200" fill="#288cfb">│</text>
-        <text x="346" y="200" fill="#288cfb">│</text>
-        <text x="0"   y="220" fill="#288cfb">│</text>
-        <text x="346" y="220" fill="#288cfb">│</text>
-        <text x="0"   y="240" fill="#288cfb">│</text>
-        <text x="346" y="240" fill="#288cfb">│</text>
-        <text x="0"   y="260" fill="#288cfb">│</text>
-        <text x="346" y="260" fill="#288cfb">│</text>
-        <text x="0"   y="280" fill="#288cfb">│</text>
-        <text x="346" y="280" fill="#288cfb">│</text>
-        <text x="0"   y="300" fill="#288cfb">│</text>
-        <text x="346" y="300" fill="#288cfb">│</text>
-        <text x="0"   y="320" fill="#288cfb">│</text>
-        <text x="346" y="320" fill="#288cfb">│</text>
-        <text x="0"   y="340" fill="#288cfb">│</text>
-        <text x="346" y="340" fill="#288cfb">│</text>
-        <text x="0"   y="360" fill="#288cfb">│</text>
-        <text x="346" y="360" fill="#288cfb">│</text>
-
-        <text x="0" y="380" fill="#288cfb">╰─────────────────────────────────────────╯</text>
-      </g>
-
-      <!-- STATUS BAR -->
-      <rect x="0" y="414" width="1020" height="20" fill="#212737"/>
-      <text x="8"    y="428" fill="#e6e6e6">▶  playing</text>
-      <text x="180"  y="428" fill="#888">network: di.fm   ·   channel: classictrance   ·   premium_high 256k</text>
-      <text x="1012" y="428" text-anchor="end" fill="#e6e6e6">vol 60% ▮▮▮▮▮▮▯▯▯▯</text>
-
-      <!-- KEY HINTS -->
-      <text x="0" y="452" fill="#888">↑↓ select   enter play   space pause   n network   / search   f favorite   +/- volume   q quit</text>
     </g>
   </g>
 
-  <text x="28" y="700" font-size="10" fill="#9aa3b2">Art source priority: track_history.art_url (per-song) → channel.images.square → channel.images.default → channel.asset_url</text>
+  <text x="28" y="848" font-size="10" fill="#9aa3b2">120×45. CW=8.5 CH=16. Pane border = row 1 (top) + row 40 (bottom). Art visually square. Set #grid-overlay display="inline" to verify.</text>
 </svg>

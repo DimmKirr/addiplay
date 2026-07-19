@@ -62,6 +62,13 @@ type (
 		voteDown int
 	}
 
+	// trackErrorMsg surfaces 401/403 from the track-metadata ticker so the
+	// UI can trigger re-auth instead of silently swallowing expired sessions.
+	trackErrorMsg struct {
+		err          error
+		unauthorized bool
+	}
+
 	progressTickMsg  struct{}
 	recentTracksMsg  struct{ tracks []audioaddict.Track }
 
@@ -75,9 +82,10 @@ type (
 
 	// routineReadyMsg carries the initial batch of tracks for per-track mode.
 	routineReadyMsg struct {
-		network string
-		channel audioaddict.Channel
-		tracks  []audioaddict.RoutineTrack
+		network   string
+		channel   audioaddict.Channel
+		tracks    []audioaddict.RoutineTrack
+		expiresOn string
 	}
 
 	// trackAdvancedMsg is emitted when the queue auto-advances to the next
@@ -202,18 +210,22 @@ func loadChannelsCmd(ctx context.Context, client AudioClient, network string) te
 // live radio stream when audio_token is absent or the routine fails.
 func playSelectedCmd(ctx context.Context, client AudioClient, p AudioPlayer, network string, ch audioaddict.Channel) tea.Cmd {
 	return func() tea.Msg {
-		tracks, err := client.FetchRoutine(ctx, network, ch.ID, true)
-		if err == nil && len(tracks) > 0 {
-			audioURL := tracks[0].AudioURL()
+		result, err := client.FetchRoutine(ctx, network, ch.ID, true)
+		if err == nil && result != nil && len(result.Tracks) > 0 {
+			audioURL := result.Tracks[0].AudioURL()
 			if audioURL != "" {
-				dlog("playSelectedCmd: per-track mode — %d tracks, playing first (%s)", len(tracks), tracks[0].Track)
+				dlog("playSelectedCmd: per-track mode — %d tracks, playing first (%s)", len(result.Tracks), result.Tracks[0].Track)
 				if err := p.Play(audioURL); err != nil {
 					return streamErrorMsg{err: err}
 				}
-				return routineReadyMsg{network: network, channel: ch, tracks: tracks}
+				return routineReadyMsg{network: network, channel: ch, tracks: result.Tracks, expiresOn: result.ExpiresOn}
 			}
 		}
-		dlog("playSelectedCmd: falling back to live stream (routine err=%v tracks=%d)", err, len(tracks))
+		trackCount := 0
+		if result != nil {
+			trackCount = len(result.Tracks)
+		}
+		dlog("playSelectedCmd: falling back to live stream (routine err=%v tracks=%d)", err, trackCount)
 
 		url, err := client.StreamURL(ctx, network, ch.Key, audioaddict.QualityPremiumHigh)
 		if err != nil {
@@ -244,6 +256,9 @@ func fetchTrackCmd(parent context.Context, client AudioClient, network string, c
 		defer cancel()
 		track, err := client.CurrentlyPlaying(ctx, network, channelID)
 		if err != nil {
+			if errors.Is(err, audioaddict.ErrUnauthorized) {
+				return trackErrorMsg{err: err, unauthorized: true}
+			}
 			return nil
 		}
 		return trackUpdateMsg{channelID: channelID, track: track, gen: gen}
@@ -260,6 +275,9 @@ func tickTrackCmd(parent context.Context, client AudioClient, network string, ch
 		defer cancel()
 		track, err := client.CurrentlyPlaying(ctx, network, channelID)
 		if err != nil {
+			if errors.Is(err, audioaddict.ErrUnauthorized) {
+				return trackErrorMsg{err: err, unauthorized: true}
+			}
 			return nil
 		}
 		return trackUpdateMsg{channelID: channelID, track: track, gen: gen}
@@ -342,12 +360,14 @@ func skipTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, networ
 			rt, ok := queue.Next()
 			if !ok {
 				dlog("skipTrackCmd: queue exhausted — refilling")
-				tracks, ferr := client.FetchRoutine(ctx, network, channelID, false)
+				result, ferr := client.FetchRoutine(ctx, network, channelID, false)
 				if ferr != nil {
 					dlog("skipTrackCmd: FetchRoutine refill FAIL err=%v", ferr)
 					return skipErrMsg{err: ferr}
 				}
-				queue.Append(tracks)
+				if result != nil {
+					queue.Append(result.Tracks)
+				}
 				rt, ok = queue.Next()
 				if !ok {
 					dlog("skipTrackCmd: routine returned no tracks after refill")
@@ -390,12 +410,14 @@ func advanceTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, net
 		rt, ok := queue.Next()
 		if !ok {
 			dlog("advanceTrackCmd: queue exhausted — refilling")
-			tracks, err := client.FetchRoutine(ctx, network, ch.ID, false)
+			result, err := client.FetchRoutine(ctx, network, ch.ID, false)
 			if err != nil {
 				dlog("advanceTrackCmd: FetchRoutine FAIL err=%v", err)
 				return trackAdvanceErrMsg{err: err}
 			}
-			queue.Append(tracks)
+			if result != nil {
+				queue.Append(result.Tracks)
+			}
 			rt, ok = queue.Next()
 			if !ok {
 				return trackAdvanceErrMsg{err: fmt.Errorf("no tracks available")}
@@ -550,6 +572,61 @@ func fetchFanartCmd(ctx context.Context, cache *fanart.Cache, url string, cols, 
 func progressTickCmd() tea.Cmd {
 	return tea.Tick(time.Second, func(_ time.Time) tea.Msg {
 		return progressTickMsg{}
+	})
+}
+
+// sessionCheckMsg carries the result of a periodic session liveness probe.
+// When alive is false, the UI pops the login overlay to re-auth proactively
+// before the next API call hits a 401.
+type sessionCheckMsg struct {
+	alive bool
+	err   error
+}
+
+// sessionCheckCmd fires every 5 minutes to verify the session is still valid.
+// It does a lightweight channels fetch — the cheapest authenticated endpoint.
+// The handler re-arms the timer on every result (alive or dead).
+func sessionCheckCmd(parent context.Context, client AudioClient, network string) tea.Cmd {
+	return tea.Tick(5*time.Minute, func(time.Time) tea.Msg {
+		ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+		defer cancel()
+		_, err := client.Channels(ctx, network)
+		if err != nil {
+			return sessionCheckMsg{alive: false, err: err}
+		}
+		return sessionCheckMsg{alive: true}
+	})
+}
+
+// sessionExpiryMsg fires when the audio_token's expires_on timestamp is about
+// to lapse. The handler pops the login overlay for proactive re-auth before
+// the next FetchRoutine call fails with a 401.
+type sessionExpiryMsg struct{}
+
+// scheduleSessionExpiryCmd parses the API's expires_on timestamp and schedules
+// a sessionExpiryMsg 2 minutes before it lapses. If the timestamp is missing
+// or unparseable, returns nil (no proactive refresh — the reactive 401 path
+// still covers it).
+func scheduleSessionExpiryCmd(expiresOn string) tea.Cmd {
+	if expiresOn == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, expiresOn)
+	if err != nil {
+		t, err = time.Parse("2006-01-02T15:04:05.000Z", expiresOn)
+		if err != nil {
+			dlog("scheduleSessionExpiryCmd: unparseable expires_on=%q err=%v", expiresOn, err)
+			return nil
+		}
+	}
+	margin := 2 * time.Minute
+	delay := time.Until(t) - margin
+	if delay < 30*time.Second {
+		delay = 30 * time.Second
+	}
+	dlog("scheduleSessionExpiryCmd: expires_on=%s delay=%s", expiresOn, delay)
+	return tea.Tick(delay, func(time.Time) tea.Msg {
+		return sessionExpiryMsg{}
 	})
 }
 

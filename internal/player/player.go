@@ -175,6 +175,12 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 	p.dec = json.NewDecoder(bufio.NewReader(conn))
 
 	go p.readLoop()
+
+	// Observe the "pause" property so we detect external pause/unpause
+	// (macOS media keys, AirPods, Control Center). mpv ≥0.21 deprecated the
+	// "pause"/"unpause" events — property observation is the only way.
+	_ = p.send([]any{"observe_property", 1, "pause"})
+
 	return p, nil
 }
 
@@ -188,7 +194,13 @@ func (p *Player) State() State { return State(p.state.Load()) }
 func (p *Player) Play(url string) error {
 	p.lastURL.Store(url)
 	p.setState(StateLoading, url, nil)
-	return p.send([]any{"loadfile", url, "replace"})
+	if err := p.send([]any{"loadfile", url, "replace"}); err != nil {
+		return err
+	}
+	// Reset pause — loadfile preserves mpv's pause state, so if something
+	// external paused us (macOS media keys, AirPods) the new track would
+	// start paused with no audio output.
+	return p.send([]any{"set_property", "pause", false})
 }
 
 // Pause pauses playback if playing.
@@ -270,6 +282,7 @@ func (p *Player) readLoop() {
 		var msg map[string]any
 		if err := p.dec.Decode(&msg); err != nil {
 			if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+				p.setState(StateIdle, "", nil)
 				return
 			}
 			p.setState(StateError, "", fmt.Errorf("read mpv: %w", err))
@@ -290,6 +303,17 @@ func (p *Player) handleMessage(msg map[string]any) {
 		p.setState(StatePaused, "", nil)
 	case "unpause":
 		p.setState(StatePlaying, "", nil)
+	case "property-change":
+		// mpv ≥0.21 delivers pause state changes here, not as pause/unpause events.
+		if name, _ := msg["name"].(string); name == "pause" {
+			if paused, ok := msg["data"].(bool); ok {
+				if paused {
+					p.setState(StatePaused, "", nil)
+				} else if p.State() == StatePaused {
+					p.setState(StatePlaying, "", nil)
+				}
+			}
+		}
 	case "end-file":
 		// "reason" can be "error" or "eof"
 		if r, _ := msg["reason"].(string); r == "error" {
