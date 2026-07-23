@@ -71,6 +71,9 @@ func runTUI(parent context.Context) error {
 		sweepCacheBestEffort(nil)
 	}
 
+	ui.Version = Version
+	ui.DebugMode = debug
+
 	client := audioaddict.NewClient(creds.DefaultStorage)
 	client.SetCreds(c)
 	if dbg != nil {

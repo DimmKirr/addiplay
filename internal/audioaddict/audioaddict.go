@@ -211,12 +211,11 @@ type Storage interface {
 type defaultHeadersTransport struct {
 	basicUser, basicPass string
 	userAgent            string
+	sessionKeyFn         func() string
 	next                 http.RoundTripper
 }
 
 func (t defaultHeadersTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Clone so we don't mutate the caller's request (HTTP RoundTripper
-	// contract — request must be left untouched on retries/redirects).
 	r2 := req.Clone(req.Context())
 	r2.SetBasicAuth(t.basicUser, t.basicPass)
 	if r2.Header.Get("User-Agent") == "" {
@@ -224,6 +223,11 @@ func (t defaultHeadersTransport) RoundTrip(req *http.Request) (*http.Response, e
 	}
 	if r2.Header.Get("Accept") == "" {
 		r2.Header.Set("Accept", "application/json, */*;q=0.5")
+	}
+	if t.sessionKeyFn != nil {
+		if sk := t.sessionKeyFn(); sk != "" && r2.Header.Get("X-Session-Key") == "" {
+			r2.Header.Set("X-Session-Key", sk)
+		}
 	}
 	return t.next.RoundTrip(r2)
 }
@@ -266,19 +270,23 @@ type Client struct {
 // tests inject a memory-backed Storage so they never touch the user's
 // keyring.
 func NewClient(storage Storage) *Client {
-	return &Client{
+	c := &Client{
 		BaseURL: "https://api.audioaddict.com/v1",
-		HTTPClient: &http.Client{
-			Timeout: 15 * time.Second,
-			Transport: defaultHeadersTransport{
-				basicUser: "streams",
-				basicPass: "diradio",
-				userAgent: UserAgent,
-				next:      http.DefaultTransport,
-			},
-		},
 		storage: storage,
 	}
+	c.HTTPClient = &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: defaultHeadersTransport{
+			basicUser: "streams",
+			basicPass: "diradio",
+			userAgent: UserAgent,
+			sessionKeyFn: func() string {
+				return c.currentSession().SessionKey
+			},
+			next: http.DefaultTransport,
+		},
+	}
+	return c
 }
 
 // SetCreds replaces the in-memory Session. UI calls this on startup
@@ -423,6 +431,7 @@ func (c *Client) Authenticate(ctx context.Context, email, password, network stri
 		m := Member{
 			ID:         p.Member.ID,
 			Email:      p.Member.Email,
+			Password:   password,
 			ListenKey:  p.Member.ListenKey,
 			SessionKey: p.Key,
 			AudioToken: p.AudioToken,

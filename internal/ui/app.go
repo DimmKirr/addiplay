@@ -48,6 +48,7 @@ const (
 	// dead promise. Lives behind a focus mode so it works from any
 	// non-input screen and self-renders without a separate Update loop.
 	FocusHelp
+	FocusAbout
 )
 
 // Tab is the right-pane filter tab.
@@ -145,7 +146,9 @@ type Model struct {
 	voteDown          int
 
 	focus       Focus
-	prevFocus   Focus // remembered when opening FocusHelp so Esc restores it
+	prevFocus   Focus // remembered when opening FocusHelp/FocusAbout so Esc restores it
+	aboutScroll int   // scroll offset for the About screen
+	aboutCursor int   // selected color index (0-255) in the palette
 	searchInput textinput.Model
 	netCursor   int
 	// pendingLogout (DIMM-393) is set on the FIRST `L` press; only the
@@ -230,6 +233,15 @@ func mapToSlice(m map[int64]bool) []int64 {
 	return out
 }
 
+func (m Model) channelIDForKey(key string) int64 {
+	for _, ch := range m.channels {
+		if ch.Key == key {
+			return ch.ID
+		}
+	}
+	return 0
+}
+
 // NewModel constructs the root model with explicit client and player
 // constructor. cmd/tui.go injects the real ones; cmd/demo.go injects fakes.
 func NewModel(ctx context.Context, c creds.Session, client AudioClient, newPlayer NewPlayerFunc) Model {
@@ -285,10 +297,13 @@ func (m Model) Init() tea.Cmd {
 // channel-load, stream, fanart, etc.) regardless of focus, then routes
 // keyboard input to the active screen's handler.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Mouse dispatch: handle clicks and scroll wheel on the home screen.
+	// Mouse dispatch: handle clicks and scroll wheel.
 	if mm, ok := msg.(tea.MouseMsg); ok {
-		if m.focus == FocusChannels {
+		switch m.focus {
+		case FocusChannels:
 			return m.handleMouse(mm)
+		case FocusAbout:
+			return m.handleAboutMouse(mm)
 		}
 		return m, nil
 	}
@@ -320,6 +335,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateLogin(k)
 		case FocusHelp:
 			return m.updateHelp(k)
+		case FocusAbout:
+			return m.updateAbout(k)
 		default:
 			return m.updateHome(k)
 		}
@@ -429,9 +446,14 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case channelsErrorMsg:
 		if msg.unauthorized {
-			m.toast = "session expired — sign in again"
-			// Auto-pop the login overlay so the user can recover in-place.
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("channelsErrorMsg: unauthorized — attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		} else {
 			m.toast = "load channels: " + msg.err.Error()
 		}
@@ -468,6 +490,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		if cmd := scheduleSessionExpiryCmd(msg.expiresOn); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+		cmds = append(cmds, keepalivePingCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID))
 
 	case streamPlayingMsg:
 		m.resolving = false
@@ -493,6 +516,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 			fetchTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
 			tickTrackCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID, gen),
 			fetchHistoryCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID),
+			keepalivePingCmd(m.ctx, m.client, m.playingNetwork, msg.channel.ID),
 		)
 		if cmd := m.refreshFanart(audioaddict.Track{}, msg.channel); cmd != nil {
 			cmds = append(cmds, cmd)
@@ -523,13 +547,23 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.resolving = false
 		switch {
 		case msg.listenKeyDead:
-			// listen_key rejected at the stream resolver — full re-auth
-			// is required (the credential the URL is signed with is dead).
-			m.toast = "listen_key rejected — sign in again"
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("streamErrorMsg: listenKeyDead — attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				m.toast = "listen_key rejected — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		case msg.unauthorized:
-			m.toast = "session expired — sign in again"
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("streamErrorMsg: unauthorized — attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		default:
 			m.toast = "play: " + msg.err.Error()
 		}
@@ -719,15 +753,21 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.skipInFlight = false
 		switch {
 		case msg.sessionInvalid:
-			dlog("skipErrMsg: sessionInvalid — stashing pendingSkip and popping login")
 			m.pendingSkip = &pendingSkip{
 				network:   msg.network,
 				trackID:   msg.trackID,
 				channelID: msg.channelID,
 				channel:   msg.channel,
 			}
-			m.toast = ""
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("skipErrMsg: sessionInvalid — stashing pendingSkip and auto-renewing")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				dlog("skipErrMsg: sessionInvalid — stashing pendingSkip and popping login")
+				m.toast = ""
+				m = m.initLoginInputs(false)
+			}
 		default:
 			m.toast = "skip: " + msg.err.Error()
 		}
@@ -782,47 +822,105 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case trackErrorMsg:
 		if msg.unauthorized {
-			dlog("trackErrorMsg: unauthorized — popping login overlay")
-			m.toast = "session expired — sign in again"
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("trackErrorMsg: unauthorized — attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				dlog("trackErrorMsg: unauthorized — popping login overlay")
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		}
 
 	case sessionCheckMsg:
 		if !msg.alive {
 			dlog("sessionCheckMsg: health check FAILED — err=%v", msg.err)
-			m.toast = "session expired — sign in again"
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("sessionCheckMsg: attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		}
 		cmds = append(cmds, sessionCheckCmd(m.ctx, m.client, m.currentNetwork))
 
 	case sessionExpiryMsg:
-		dlog("sessionExpiryMsg: audio_token approaching expiry — popping login")
-		m.toast = "session expiring soon — sign in again for uninterrupted playback"
-		m = m.initLoginInputs(false)
+		dlog("sessionExpiryMsg: audio_token approaching expiry")
+		if m.creds.Email != "" && m.creds.Password != "" {
+			dlog("sessionExpiryMsg: attempting auto-renew")
+			m.toast = "session refreshing…"
+			cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+		} else {
+			m.toast = "session expiring soon — sign in again for uninterrupted playback"
+			m = m.initLoginInputs(false)
+		}
+
+	case autoRenewMsg:
+		if msg.err != nil {
+			dlog("autoRenewMsg: auto-renew FAILED err=%v — falling back to login overlay", msg.err)
+			m.toast = "session expired — sign in again"
+			m = m.initLoginInputs(false)
+		} else {
+			dlog("autoRenewMsg: auto-renew OK — session refreshed silently")
+			m.creds = msg.creds
+			m.toast = ""
+			if m.pendingVote != nil {
+				pv := m.pendingVote
+				m.pendingVote = nil
+				m.voteInFlight = true
+				cmds = append(cmds, voteCmd(m.ctx, m.client, pv.network, pv.trackID, pv.channelID, pv.dir))
+			}
+			if m.pendingSkip != nil {
+				ps := m.pendingSkip
+				m.pendingSkip = nil
+				m.skipInFlight = true
+				trackLen := int(m.currentTrack.Duration)
+				cmds = append(cmds, skipTrackCmd(m.ctx, m.client, m.player, ps.network, ps.trackID, ps.channelID, trackLen, 0, ps.channel, m.trackQueue))
+			}
+		}
+
+	case keepalivePingMsg:
+		if msg.err != nil {
+			dlog("keepalivePingMsg: ping FAILED err=%v", msg.err)
+		}
+		if m.currentChannel != "" {
+			chID := m.channelIDForKey(m.currentChannel)
+			if chID != 0 {
+				cmds = append(cmds, keepalivePingCmd(m.ctx, m.client, m.playingNetwork, chID))
+			}
+		}
 
 	case voteErrMsg:
 		m.voteInFlight = false
 		switch {
 		case msg.sessionInvalid:
-			// The X-Session-Key was rejected. Stash the original op so
-			// loginSuccessMsg replays it; pop login. Toast is empty —
-			// the overlay is enough signal; the user just typed `l` and
-			// gets the password prompt straight away.
-			dlog("voteErrMsg: sessionInvalid — stashing pendingVote and popping login")
 			m.pendingVote = &pendingVote{
 				network:   msg.network,
 				trackID:   msg.trackID,
 				channelID: msg.channelID,
 				dir:       msg.dir,
 			}
-			m.toast = ""
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("voteErrMsg: sessionInvalid — stashing pendingVote and auto-renewing")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				dlog("voteErrMsg: sessionInvalid — stashing pendingVote and popping login")
+				m.toast = ""
+				m = m.initLoginInputs(false)
+			}
 		case msg.unauthorized:
-			// Generic 401/403 — full re-auth path. (Today this should
-			// not fire on vote since ErrSessionInvalid covers it; kept
-			// as defense in depth.)
-			m.toast = "session expired — sign in again"
-			m = m.initLoginInputs(false)
+			if m.creds.Email != "" && m.creds.Password != "" {
+				dlog("voteErrMsg: unauthorized — attempting auto-renew")
+				m.toast = "session refreshing…"
+				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
+			} else {
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		default:
 			m.toast = "vote: " + msg.err.Error()
 		}
@@ -845,6 +943,8 @@ func (m Model) View() string {
 		return m.viewLogin()
 	case FocusHelp:
 		return m.viewHelp()
+	case FocusAbout:
+		return m.viewAbout()
 	default:
 		return m.viewHome()
 	}

@@ -36,6 +36,7 @@ var helpEntries = []helpEntry{
 	{"voting", keys.Dislike},
 	{"voting", keys.Favorite},
 	{"app", keys.Help},
+	{"app", keys.About},
 	{"app", keys.Logout},
 	{"app", keys.Quit},
 }

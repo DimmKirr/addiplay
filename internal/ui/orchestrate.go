@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
+	"github.com/dimmkirr/addiplay/internal/creds"
 	"github.com/dimmkirr/addiplay/internal/fanart"
 	"github.com/dimmkirr/addiplay/internal/player"
 )
@@ -627,6 +628,55 @@ func scheduleSessionExpiryCmd(expiresOn string) tea.Cmd {
 	dlog("scheduleSessionExpiryCmd: expires_on=%s delay=%s", expiresOn, delay)
 	return tea.Tick(delay, func(time.Time) tea.Msg {
 		return sessionExpiryMsg{}
+	})
+}
+
+// autoRenewMsg carries the result of a background re-authenticate attempt
+// using stored credentials. On success, the UI silently updates creds and
+// re-arms the session health timer — no login overlay needed.
+type autoRenewMsg struct {
+	creds creds.Session
+	err   error
+}
+
+// autoRenewCmd re-authenticates using the stored email+password without
+// user interaction. Falls back to popping the login overlay if the stored
+// password is empty or the re-auth fails.
+func autoRenewCmd(parent context.Context, client AudioClient, email, password, network string) tea.Cmd {
+	return func() tea.Msg {
+		dlog("autoRenewCmd: attempting silent re-auth (email_len=%d password_len=%d network=%s)", len(email), len(password), network)
+		ctx, cancel := context.WithTimeout(parent, 15*time.Second)
+		defer cancel()
+		member, err := client.Authenticate(ctx, email, password, network)
+		if err != nil {
+			dlog("autoRenewCmd: re-auth FAIL err=%v", err)
+			return autoRenewMsg{err: err}
+		}
+		dlog("autoRenewCmd: re-auth OK id=%d session_key_len=%d audio_token_len=%d",
+			member.ID, len(member.SessionKey), len(member.AudioToken))
+		return autoRenewMsg{creds: member}
+	}
+}
+
+// keepalivePingMsg carries the result of a periodic keepalive heartbeat
+// sent to the AudioAddict API. This mimics the web frontend's behavior
+// of periodically hitting the track_history endpoint to prevent the
+// server from marking the session as inactive.
+type keepalivePingMsg struct {
+	err error
+}
+
+// keepalivePingCmd sends a periodic heartbeat to keep the server-side
+// session alive. The web frontend polls track_history every ~30s; we use
+// a longer interval since we already have the 15s track ticker running.
+// This runs independently as a belt-and-suspenders approach alongside
+// the existing sessionCheckCmd.
+func keepalivePingCmd(parent context.Context, client AudioClient, network string, channelID int64) tea.Cmd {
+	return tea.Tick(2*time.Minute, func(time.Time) tea.Msg {
+		ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+		defer cancel()
+		_, err := client.ChannelHistory(ctx, network, channelID)
+		return keepalivePingMsg{err: err}
 	})
 }
 

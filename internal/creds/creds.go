@@ -64,6 +64,7 @@ const account = "default"
 type Session struct {
 	ID         int64  `json:"id,omitempty"`
 	Email      string `json:"email"`
+	Password   string `json:"password,omitempty"`
 	ListenKey  string `json:"listen_key"`
 	SessionKey string `json:"session_key,omitempty"`
 	AudioToken string `json:"audio_token,omitempty"`
@@ -108,16 +109,16 @@ func Load() (Session, error) {
 		dlogf("Load: file decode FAIL err=%v body_len=%d", err, len(body))
 		return Session{}, fmt.Errorf("decode creds file: %w", err)
 	}
-	dlogf("Load: file -> id=%d email_set=%t listen_key_len=%d session_key_len=%d premium=%t",
-		s.ID, s.Email != "", len(s.ListenKey), len(s.SessionKey), s.Premium)
+	dlogf("Load: file -> id=%d email_set=%t password_len=%d listen_key_len=%d session_key_len=%d premium=%t",
+		s.ID, s.Email != "", len(s.Password), len(s.ListenKey), len(s.SessionKey), s.Premium)
 	return s, nil
 }
 
 // Save writes the session to keyring (preferred) and file (always, as a
 // belt-and-braces fallback the user can see in their config dir).
 func Save(s Session) error {
-	dlogf("Save: id=%d email_set=%t listen_key_len=%d session_key_len=%d premium=%t",
-		s.ID, s.Email != "", len(s.ListenKey), len(s.SessionKey), s.Premium)
+	dlogf("Save: id=%d email_set=%t password_len=%d listen_key_len=%d session_key_len=%d premium=%t",
+		s.ID, s.Email != "", len(s.Password), len(s.ListenKey), len(s.SessionKey), s.Premium)
 	raw, err := json.Marshal(s)
 	if err != nil {
 		dlogf("Save: marshal FAIL err=%v", err)

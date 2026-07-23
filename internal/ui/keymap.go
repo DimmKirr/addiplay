@@ -30,6 +30,7 @@ type keymap struct {
 	// current network, wrapping around.
 	SkipChannel key.Binding
 	Help        key.Binding
+	About       key.Binding
 }
 
 var keys = keymap{
@@ -50,4 +51,5 @@ var keys = keymap{
 	SkipTrack:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "skip track")),
 	SkipChannel: key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "next fav")),
 	Help:        key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "show keys")),
+	About:       key.NewBinding(key.WithKeys("A"), key.WithHelp("A", "about")),
 }

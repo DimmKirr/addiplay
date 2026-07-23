@@ -222,6 +222,12 @@ func (m Model) updateHome(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focus = FocusHelp
 		return m, nil
 
+	case key.Matches(msg, keys.About):
+		m.prevFocus = m.focus
+		m.focus = FocusAbout
+		m.aboutScroll = 0
+		return m, nil
+
 	case key.Matches(msg, keys.Logout):
 		// DIMM-393: confirm-then-act for the destructive logout. First
 		// `L` arms `pendingLogout`; the second within ~3s actually
