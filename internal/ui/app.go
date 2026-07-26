@@ -90,7 +90,7 @@ type AudioPlayer interface {
 	Resume() error
 	Stop() error
 	SetVolume(pct int) error
-	SetTrackMetadata(artist, title string) error
+	SetTrackMetadata(artist, title string, durationSec int, artURL string) error
 	Close() error
 	Events() <-chan player.Event
 	State() player.State
@@ -429,6 +429,37 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 					cmds = append(cmds, advanceTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, ch, m.trackQueue))
 				} else {
 					dlog("playerStateMsg: idle but channelByID(%d) not found in %d channels — no auto-advance", chID, len(m.channels))
+				}
+			}
+		}
+		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
+
+	case mediaCommandMsg:
+		dlog("mediaCommandMsg: %s", msg.cmd)
+		switch msg.cmd {
+		case player.MediaCommandPlayPause:
+			if m.player != nil {
+				switch m.playerSt {
+				case player.StatePlaying:
+					if err := m.player.Pause(); err != nil {
+						m.toast = "pause: " + err.Error()
+					}
+				case player.StatePaused:
+					if err := m.player.Resume(); err != nil {
+						m.toast = "resume: " + err.Error()
+					}
+				}
+			}
+		case player.MediaCommandNext:
+			if m.player != nil && m.currentTrack.ID != 0 && !m.skipInFlight && !m.resolving {
+				if m.trackQueue != nil && m.creds.SessionKey != "" {
+					channelID := channelIDFromKey(m.channels, m.currentChannel)
+					if ch, ok := channelByID(m.channels, channelID); ok && channelID != 0 {
+						trackLen := int(m.currentTrack.Duration)
+						dlog("mediaCommandMsg Next: skip track=%d ch=%d net=%s", m.currentTrack.ID, channelID, m.playingNetwork)
+						m.skipInFlight = true
+						cmds = append(cmds, skipTrackCmd(m.ctx, m.client, m.player, m.playingNetwork, m.currentTrack.ID, channelID, trackLen, 0, ch, m.trackQueue))
+					}
 				}
 			}
 		}
@@ -1008,8 +1039,12 @@ func (m *Model) pushMediaTitle() {
 		}
 		title = t.Track
 	}
-	dlog("pushMediaTitle: artist=%q title=%q (raw track=%q)", artist, title, t.Track)
-	_ = m.player.SetTrackMetadata(artist, title)
+	artURL := ""
+	if t.ArtURL != "" {
+		artURL = audioaddict.ResolveImageURL(t.ArtURL, 300, 300, 80)
+	}
+	dlog("pushMediaTitle: artist=%q title=%q duration=%d artURL=%q (raw track=%q)", artist, title, int(t.Duration), artURL, t.Track)
+	_ = m.player.SetTrackMetadata(artist, title, int(t.Duration), artURL)
 }
 
 // View dispatches to the active screen's renderer. Overlays (network

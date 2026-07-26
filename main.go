@@ -17,8 +17,10 @@ import (
 // snapshotted the default value into rootCmd.Version.
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	platformRunLoop(func() {
+		if err := cmd.Execute(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	})
 }

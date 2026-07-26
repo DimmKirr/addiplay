@@ -11,6 +11,7 @@ import (
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
 	"github.com/dimmkirr/addiplay/internal/creds"
 	"github.com/dimmkirr/addiplay/internal/fanart"
+	"github.com/dimmkirr/addiplay/internal/nowplaying"
 	"github.com/dimmkirr/addiplay/internal/player"
 	"github.com/dimmkirr/addiplay/internal/ui"
 )
@@ -87,7 +88,39 @@ func runTUI(parent context.Context) error {
 				player.WithMPVLogFile(dbg.MPVLogPath),
 			)
 		}
-		return player.New(ctx, opts...)
+
+		var npOpts []nowplaying.Option
+		if dbg != nil {
+			npOpts = append(npOpts, nowplaying.WithLogWriter(dbg.Writer))
+		}
+		var p *player.Player
+		np := nowplaying.New(func(cmd nowplaying.Command) {
+			if p == nil {
+				return
+			}
+			var mc player.MediaCommand
+			switch cmd {
+			case nowplaying.CmdPlayPause:
+				mc = player.MediaCommandPlayPause
+			case nowplaying.CmdNext:
+				mc = player.MediaCommandNext
+			case nowplaying.CmdPrevious:
+				mc = player.MediaCommandPrevious
+			}
+			if dbg != nil {
+				fmt.Fprintf(dbg.Writer, "[tui] nowplaying handler: %s → %s\n", cmd, mc)
+			}
+			p.InjectMediaCommand(mc)
+		}, npOpts...)
+		opts = append(opts, player.WithNowPlaying(np))
+
+		var err error
+		p, err = player.New(ctx, opts...)
+		if err != nil {
+			np.Close()
+			return nil, err
+		}
+		return p, nil
 	}
 
 	p := tea.NewProgram(

@@ -20,6 +20,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/dimmkirr/addiplay/internal/nowplaying"
 )
 
 //go:embed nowplaying.lua
@@ -40,13 +42,29 @@ func (s State) String() string {
 	return [...]string{"idle", "loading", "playing", "paused", "error"}[s]
 }
 
+// MediaCommand represents a media-key action received from the OS now-playing
+// integration (macOS MPRemoteCommandCenter, Linux MPRIS).
+type MediaCommand int
+
+const (
+	MediaCommandNone     MediaCommand = iota
+	MediaCommandPlayPause
+	MediaCommandNext
+	MediaCommandPrevious
+)
+
+func (c MediaCommand) String() string {
+	return [...]string{"None", "PlayPause", "Next", "Previous"}[c]
+}
+
 // Event is a state transition or an mpv-side message.
 type Event struct {
 	State           State
-	URL             string // last requested URL (may be empty)
-	Err             error  // populated when State == StateError
-	MediaTitle      string // populated only on media-title property changes
-	MetadataChanged bool   // true when stream metadata changed (ICY title update)
+	URL             string       // last requested URL (may be empty)
+	Err             error        // populated when State == StateError
+	MediaTitle      string       // populated only on media-title property changes
+	MetadataChanged bool         // true when stream metadata changed (ICY title update)
+	MediaCommand    MediaCommand // populated when OS media key is pressed
 }
 
 // Player owns the mpv subprocess and IPC socket.
@@ -65,14 +83,17 @@ type Player struct {
 	closeOnce sync.Once
 	closed    chan struct{}
 	writeMu   sync.Mutex // serializes Encoder writes
+
+	np nowplaying.Provider // OS now-playing integration (nil if not configured)
 }
 
 // Option configures a Player at construction time.
 type Option func(*config)
 
 type config struct {
-	debugWriter io.Writer // addiplay-side log destination (in-memory startup, optional tee)
-	mpvLogPath  string    // file path passed to mpv's --log-file flag
+	debugWriter io.Writer          // addiplay-side log destination (in-memory startup, optional tee)
+	mpvLogPath  string             // file path passed to mpv's --log-file flag
+	np          nowplaying.Provider // OS now-playing provider
 }
 
 // WithDebugWriter routes mpv's stdout/stderr to w in addition to the
@@ -89,6 +110,12 @@ func WithDebugWriter(w io.Writer) Option {
 // their header BEFORE the player starts and avoid concurrent writes.
 func WithMPVLogFile(path string) Option {
 	return func(c *config) { c.mpvLogPath = path }
+}
+
+// WithNowPlaying attaches an OS now-playing provider. The player delegates
+// track metadata and playback state to it, and closes it on shutdown.
+func WithNowPlaying(p nowplaying.Provider) Option {
+	return func(c *config) { c.np = p }
 }
 
 // New starts an idle mpv subprocess and connects over Unix socket. The
@@ -111,6 +138,7 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 	p := &Player{
 		events: make(chan Event, 32),
 		closed: make(chan struct{}),
+		np:     cfg.np,
 	}
 	p.state.Store(int32(StateIdle))
 	p.lastURL.Store("")
@@ -119,6 +147,7 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 		if _, err := exec.LookPath("mpv"); err != nil {
 			return nil, fmt.Errorf("mpv binary not found in PATH — install mpv (https://mpv.io/installation/) and try again")
 		}
+		reapOrphanedMPV()
 		dir, err := os.MkdirTemp("", "addiplay-mpv-*")
 		if err != nil {
 			return nil, err
@@ -136,6 +165,9 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 			"--no-input-terminal",
 			"--input-ipc-server=" + p.socketPath,
 			"--script=" + scriptPath,
+		}
+		if cfg.np != nil {
+			args = append(args, "--input-media-keys=no")
 		}
 		if cfg.mpvLogPath != "" {
 			// --log-file is the ONLY way to get mpv output while
@@ -201,6 +233,16 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 // Events returns the event stream. Drained by the UI's Bubble Tea loop.
 func (p *Player) Events() <-chan Event { return p.events }
 
+// InjectMediaCommand pushes a media-key event into the event stream so the
+// TUI handles it like any other player event. Called from the nowplaying
+// handler callback (OS media keys → CGo → this method → Bubble Tea).
+func (p *Player) InjectMediaCommand(cmd MediaCommand) {
+	select {
+	case p.events <- Event{MediaCommand: cmd}:
+	default:
+	}
+}
+
 // State returns the current state snapshot.
 func (p *Player) State() State { return State(p.state.Load()) }
 
@@ -210,6 +252,9 @@ func (p *Player) Play(url string) error {
 	p.setState(StateLoading, url, nil)
 	if err := p.send([]any{"loadfile", url, "replace"}); err != nil {
 		return err
+	}
+	if p.np != nil {
+		p.np.SetPlaying(true)
 	}
 	// Reset pause — loadfile preserves mpv's pause state, so if something
 	// external paused us (macOS media keys, AirPods) the new track would
@@ -222,6 +267,9 @@ func (p *Player) Pause() error {
 	if err := p.send([]any{"set_property", "pause", true}); err != nil {
 		return err
 	}
+	if p.np != nil {
+		p.np.SetPlaying(false)
+	}
 	p.setState(StatePaused, "", nil)
 	return nil
 }
@@ -230,6 +278,9 @@ func (p *Player) Pause() error {
 func (p *Player) Resume() error {
 	if err := p.send([]any{"set_property", "pause", false}); err != nil {
 		return err
+	}
+	if p.np != nil {
+		p.np.SetPlaying(true)
 	}
 	p.setState(StatePlaying, "", nil)
 	return nil
@@ -240,13 +291,22 @@ func (p *Player) Stop() error {
 	if err := p.send([]any{"stop"}); err != nil {
 		return err
 	}
+	if p.np != nil {
+		p.np.SetPlaying(false)
+	}
 	p.setState(StateIdle, "", nil)
 	return nil
 }
 
-// SetTrackMetadata sends structured artist/title to the embedded Lua script
-// which formats and sets force-media-title for macOS Now Playing / MPRIS.
-func (p *Player) SetTrackMetadata(artist, title string) error {
+// SetTrackMetadata sets the currently-playing track's artist and title. When
+// a nowplaying.Provider is attached (WithNowPlaying), metadata is pushed
+// directly to the OS (separate artist/title fields). Otherwise falls back to
+// the mpv Lua script which combines them into force-media-title.
+func (p *Player) SetTrackMetadata(artist, title string, durationSec int, artURL string) error {
+	if p.np != nil {
+		p.np.Update(artist, title, durationSec, artURL)
+		return nil
+	}
 	return p.send([]any{"script-message", "set-track-metadata", artist, title})
 }
 
@@ -266,6 +326,9 @@ func (p *Player) Close() error {
 	var firstErr error
 	p.closeOnce.Do(func() {
 		close(p.closed)
+		if p.np != nil {
+			p.np.Close()
+		}
 		if p.conn != nil {
 			_ = p.conn.Close()
 		}
@@ -411,6 +474,28 @@ func (p *Player) killProcess() error {
 		_ = os.RemoveAll(filepath.Dir(p.socketPath))
 	}
 	return nil
+}
+
+// reapOrphanedMPV kills any mpv processes left behind by a previous
+// addiplay that crashed without cleaning up. Matches on the
+// --input-ipc-server=/tmp/addiplay-mpv-* argument pattern.
+func reapOrphanedMPV() {
+	out, err := exec.Command("pgrep", "-f", "mpv.*addiplay-mpv").Output()
+	if err != nil || len(out) == 0 {
+		return
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		_ = exec.Command("kill", "-9", line).Run()
+	}
+	// Clean up stale socket dirs from crashed sessions.
+	matches, _ := filepath.Glob(os.TempDir() + "/addiplay-mpv-*")
+	for _, d := range matches {
+		_ = os.RemoveAll(d)
+	}
 }
 
 // waitForSocketOrExit polls for the IPC socket file to appear. If mpv

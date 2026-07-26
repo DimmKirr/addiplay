@@ -25,6 +25,7 @@ type (
 	playerStateMsg        struct{ state player.State }
 	mpvMediaTitleMsg      struct{ title string }
 	mpvMetadataChangedMsg struct{}
+	mediaCommandMsg       struct{ cmd player.MediaCommand }
 	channelsLoadedMsg struct{ channels []audioaddict.Channel }
 	channelsErrorMsg struct {
 		err          error
@@ -194,6 +195,10 @@ func pumpPlayerEventsCmd(p AudioPlayer) tea.Cmd {
 		ev, ok := <-p.Events()
 		if !ok {
 			return nil
+		}
+		if ev.MediaCommand != player.MediaCommandNone {
+			dlog("pumpPlayerEvents: MediaCommand=%s", ev.MediaCommand)
+			return mediaCommandMsg{cmd: ev.MediaCommand}
 		}
 		if ev.Err != nil {
 			return playerErrorMsg{err: ev.Err}
