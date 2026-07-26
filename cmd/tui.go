@@ -94,6 +94,7 @@ func runTUI(parent context.Context) error {
 		ui.NewModel(ctx, c, client, newPlayer),
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
+		tea.WithReportFocus(),
 	)
 	if dbg != nil {
 		_, _ = fmt.Fprintln(dbg.Writer, "[tui] p.Run() entering")

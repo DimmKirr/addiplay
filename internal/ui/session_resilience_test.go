@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dimmkirr/addiplay/internal/audioaddict"
 	"github.com/dimmkirr/addiplay/internal/creds"
@@ -181,5 +182,44 @@ func TestStreamPlaying_emptyAudioToken_showsToast(t *testing.T) {
 	}
 	if !strings.Contains(mm.toast, "sign in") {
 		t.Errorf("toast should mention re-login; got %q", mm.toast)
+	}
+}
+
+// --- stale session-expiry timer tests ---
+
+// TestSessionExpiryMsg_staleTimer_ignoredWhenSessionStillValid verifies that
+// a sessionExpiryMsg from a stale timer (left over from an earlier routine
+// fetch) is silently discarded when the session has since been renewed.
+//
+// Reproduction of the 2026-07-24 logout:
+//   1. First routine sets expires_on ~24h out → timer #1 scheduled.
+//   2. Subsequent channel switches schedule timers #2–#4 with later expiry,
+//      each updating m.sessionExpiresAt — but timer #1 is never cancelled.
+//   3. Timer #1 fires first. The handler doesn't check sessionExpiresAt,
+//      so it pops the login overlay even though the session is still valid.
+func TestSessionExpiryMsg_staleTimer_ignoredWhenSessionStillValid(t *testing.T) {
+	m := newTestModel(t)
+	m.creds = creds.Session{
+		Email:      "test@example.com",
+		ListenKey:  "abc123",
+		SessionKey: "sk-test",
+		Premium:    true,
+		// No password — matches the original bug scenario.
+	}
+	m.currentNetwork = "di"
+	m.playingNetwork = "di"
+	m.currentChannel = "chillout"
+	// Simulate a renewed session that doesn't expire for another 5 hours.
+	m.sessionExpiresAt = time.Now().Add(5 * time.Hour)
+
+	m2, _ := m.Update(sessionExpiryMsg{})
+	mm := m2.(Model)
+
+	// The stale timer should be silently ignored — no login overlay, no toast.
+	if mm.focus == FocusLogin {
+		t.Error("stale sessionExpiryMsg should NOT pop login overlay when session is still valid")
+	}
+	if strings.Contains(mm.toast, "expiring") || strings.Contains(mm.toast, "sign in") {
+		t.Errorf("stale sessionExpiryMsg should NOT show expiry toast; got %q", mm.toast)
 	}
 }

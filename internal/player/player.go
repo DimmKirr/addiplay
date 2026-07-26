@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,9 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+//go:embed nowplaying.lua
+var nowplayingScript []byte
 
 // State enumerates the player lifecycle as seen by the UI.
 type State int
@@ -38,9 +42,11 @@ func (s State) String() string {
 
 // Event is a state transition or an mpv-side message.
 type Event struct {
-	State State
-	URL   string // last requested URL (may be empty)
-	Err   error  // populated when State == StateError
+	State           State
+	URL             string // last requested URL (may be empty)
+	Err             error  // populated when State == StateError
+	MediaTitle      string // populated only on media-title property changes
+	MetadataChanged bool   // true when stream metadata changed (ICY title update)
 }
 
 // Player owns the mpv subprocess and IPC socket.
@@ -118,12 +124,18 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 			return nil, err
 		}
 		p.socketPath = filepath.Join(dir, "ipc.sock")
+		scriptPath := filepath.Join(dir, "nowplaying.lua")
+		if err := os.WriteFile(scriptPath, nowplayingScript, 0644); err != nil {
+			_ = os.RemoveAll(dir)
+			return nil, fmt.Errorf("write nowplaying script: %w", err)
+		}
 		args := []string{
 			"--idle=yes",
 			"--no-video",
 			"--no-terminal",
 			"--no-input-terminal",
 			"--input-ipc-server=" + p.socketPath,
+			"--script=" + scriptPath,
 		}
 		if cfg.mpvLogPath != "" {
 			// --log-file is the ONLY way to get mpv output while
@@ -180,6 +192,8 @@ func newPlayer(ctx context.Context, existingSocket string, opts ...Option) (*Pla
 	// (macOS media keys, AirPods, Control Center). mpv ≥0.21 deprecated the
 	// "pause"/"unpause" events — property observation is the only way.
 	_ = p.send([]any{"observe_property", 1, "pause"})
+	_ = p.send([]any{"observe_property", 2, "media-title"})
+	_ = p.send([]any{"observe_property", 3, "metadata"})
 
 	return p, nil
 }
@@ -228,6 +242,12 @@ func (p *Player) Stop() error {
 	}
 	p.setState(StateIdle, "", nil)
 	return nil
+}
+
+// SetTrackMetadata sends structured artist/title to the embedded Lua script
+// which formats and sets force-media-title for macOS Now Playing / MPRIS.
+func (p *Player) SetTrackMetadata(artist, title string) error {
+	return p.send([]any{"script-message", "set-track-metadata", artist, title})
 }
 
 // SetVolume sets mpv's volume (0..100).
@@ -304,8 +324,9 @@ func (p *Player) handleMessage(msg map[string]any) {
 	case "unpause":
 		p.setState(StatePlaying, "", nil)
 	case "property-change":
-		// mpv ≥0.21 delivers pause state changes here, not as pause/unpause events.
-		if name, _ := msg["name"].(string); name == "pause" {
+		name, _ := msg["name"].(string)
+		switch name {
+		case "pause":
 			if paused, ok := msg["data"].(bool); ok {
 				if paused {
 					p.setState(StatePaused, "", nil)
@@ -313,6 +334,12 @@ func (p *Player) handleMessage(msg map[string]any) {
 					p.setState(StatePlaying, "", nil)
 				}
 			}
+		case "media-title":
+			if title, ok := msg["data"].(string); ok && title != "" {
+				p.emitMediaTitle(title)
+			}
+		case "metadata":
+			p.emitMetadataChanged()
 		}
 	case "end-file":
 		// "reason" can be "error" or "eof"
@@ -330,6 +357,22 @@ func (p *Player) handleMessage(msg map[string]any) {
 		if p.State() != StateLoading {
 			p.setState(StateIdle, "", nil)
 		}
+	}
+}
+
+func (p *Player) emitMediaTitle(title string) {
+	lastURL, _ := p.lastURL.Load().(string)
+	select {
+	case p.events <- Event{State: State(p.state.Load()), URL: lastURL, MediaTitle: title}:
+	default:
+	}
+}
+
+func (p *Player) emitMetadataChanged() {
+	lastURL, _ := p.lastURL.Load().(string)
+	select {
+	case p.events <- Event{State: State(p.state.Load()), URL: lastURL, MetadataChanged: true}:
+	default:
 	}
 }
 
@@ -365,8 +408,7 @@ func (p *Player) killProcess() error {
 	// mpv. The reaper goroutine handles process reaping; we just need
 	// to send the kill signal and clean up the socket file.
 	if p.socketPath != "" {
-		_ = os.Remove(p.socketPath)
-		_ = os.Remove(filepath.Dir(p.socketPath))
+		_ = os.RemoveAll(filepath.Dir(p.socketPath))
 	}
 	return nil
 }

@@ -259,6 +259,9 @@ func (p *FakePlayer) Stop() error { p.setState(player.StateIdle, "", nil); retur
 // SetVolume is a no-op (fake player has no audio).
 func (p *FakePlayer) SetVolume(_ int) error { return nil }
 
+// SetTrackMetadata is a no-op (fake player has no OS media integration).
+func (p *FakePlayer) SetTrackMetadata(_, _ string) error { return nil }
+
 // Events returns the state event stream.
 func (p *FakePlayer) Events() <-chan player.Event { return p.events }
 

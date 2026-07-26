@@ -90,6 +90,7 @@ type AudioPlayer interface {
 	Resume() error
 	Stop() error
 	SetVolume(pct int) error
+	SetTrackMetadata(artist, title string) error
 	Close() error
 	Events() <-chan player.Event
 	State() player.State
@@ -204,6 +205,10 @@ type Model struct {
 	// trackQueue holds on-demand tracks for the current channel (per-track
 	// mode via channel_routine API). nil means live-stream mode.
 	trackQueue *audioaddict.TrackQueue
+	// sessionExpiresAt is the parsed expires_on from the last routine
+	// response. Within this window we trust the cached auth and treat
+	// API failures as transient network errors rather than session death.
+	sessionExpiresAt time.Time
 }
 
 // sliceToMap converts a persisted []int64 vote list to the runtime
@@ -351,8 +356,25 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.FocusMsg:
+		dlog("FocusMsg: terminal gained focus — clearing fanartEscape to force Kitty re-render (src=%q escapeLen=%d)", m.fanartSourceURL, len(m.fanartEscape))
+		m.fanartEscape = ""
+		cmds = append(cmds, func() tea.Msg { return fanartRefreshMsg{} })
+
+	case fanartRefreshMsg:
+		ch := m.playingChannel()
+		if ch.Key != "" {
+			dlog("fanartRefreshMsg: re-populating fanart from cache (ch=%q track=%q)", ch.Key, m.currentTrack.Title)
+			if cmd := m.refreshFanart(m.currentTrack, ch); cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
+
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		if len(m.channels) > 0 {
+			cmds = append(cmds, m.kickoffVisibleThumbs()...)
+		}
 
 	case playerReadyMsg:
 		m.player = msg.p
@@ -362,6 +384,20 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		dlog("playerErrorMsg: %v", msg.err)
 		m.toast = msg.err.Error()
 		m.loading = false
+		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
+
+	case mpvMetadataChangedMsg:
+		dlog("mpvMetadataChanged: stream metadata changed (ICY title update)")
+		if m.trackQueue == nil && m.currentChannel != "" {
+			chID := channelIDFromKey(m.channels, m.currentChannel)
+			if chID != 0 {
+				cmds = append(cmds, fetchTrackCmd(m.ctx, m.client, m.playingNetwork, chID, m.trackTickGen))
+			}
+		}
+		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
+
+	case mpvMediaTitleMsg:
+		dlog("mpvMediaTitle: mpv reports media-title=%q", msg.title)
 		cmds = append(cmds, pumpPlayerEventsCmd(m.player))
 
 	case playerStateMsg:
@@ -460,6 +496,11 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case routineReadyMsg:
 		dlog("routineReadyMsg: channel=%s net=%s tracks=%d", msg.channel.Key, msg.network, len(msg.tracks))
+		if len(msg.tracks) > 0 {
+			rt := msg.tracks[0]
+			dlog("routineReadyMsg: first track=%d artist=%q title=%q combined=%q audioURL=%q",
+				rt.TrackID, rt.Artist, rt.Title, rt.Track, rt.AudioURL())
+		}
 		m.resolving = false
 		m.currentChannel = msg.channel.Key
 		m.playingNetwork = msg.network
@@ -474,6 +515,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.trackQueue = q
 		if len(msg.tracks) > 0 {
 			m.currentTrack = msg.tracks[0].ToTrack()
+			m.pushMediaTitle()
 			m.trackStartTime = time.Now()
 			m.trackPauseElapsed = 0
 			m.voteUp = 0
@@ -487,6 +529,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		m.statusInfo = fmt.Sprintf("on-demand (%d tracks queued)", q.Remaining())
 		cmds = append(cmds, clearStatusInfoCmd())
+		if t, err := parseExpiresOn(msg.expiresOn); err == nil {
+			m.sessionExpiresAt = t
+			dlog("routineReadyMsg: sessionExpiresAt updated to %s", t.Format(time.RFC3339))
+		}
 		if cmd := scheduleSessionExpiryCmd(msg.expiresOn); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -570,7 +616,10 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.loading = false
 
 	case trackUpdateMsg:
+		dlog("trackUpdateMsg: channelID=%d gen=%d artist=%q title=%q track=%q artURL=%q",
+			msg.channelID, msg.gen, msg.track.Artist, msg.track.Title, msg.track.Track, msg.track.ArtURL)
 		if msg.gen != m.trackTickGen {
+			dlog("trackUpdateMsg: DROPPED stale gen=%d (current=%d) — tick chain for old channel retired", msg.gen, m.trackTickGen)
 			break
 		}
 		if msg.channelID == channelIDFromKey(m.channels, m.currentChannel) || m.playingNetwork != m.currentNetwork {
@@ -593,6 +642,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 				cmds = append(cmds, fetchHistoryCmd(m.ctx, m.client, m.playingNetwork, msg.channelID))
 			}
 			m.currentTrack = msg.track
+			m.pushMediaTitle()
 			ch, _ := channelByID(m.channels, msg.channelID)
 			if cmd := m.refreshFanart(msg.track, ch); cmd != nil {
 				cmds = append(cmds, cmd)
@@ -728,6 +778,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.voteDown = 0
 		if msg.routineTrack != nil {
 			m.currentTrack = msg.routineTrack.ToTrack()
+			m.pushMediaTitle()
 			if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
 				cmds = append(cmds, cmd)
 			}
@@ -780,6 +831,7 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 		m.voteUp = 0
 		m.voteDown = 0
 		m.currentTrack = msg.routineTrack.ToTrack()
+		m.pushMediaTitle()
 		if cmd := m.refreshFanart(m.currentTrack, msg.channel); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -835,8 +887,12 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case sessionCheckMsg:
 		if !msg.alive {
-			dlog("sessionCheckMsg: health check FAILED — err=%v", msg.err)
-			if m.creds.Email != "" && m.creds.Password != "" {
+			dlog("sessionCheckMsg: health check FAILED — err=%v isNetwork=%t sessionValid=%t expiresAt=%s",
+				msg.err, isNetworkError(msg.err), sessionStillValid(m.sessionExpiresAt), m.sessionExpiresAt.Format(time.RFC3339))
+			if isNetworkError(msg.err) && sessionStillValid(m.sessionExpiresAt) {
+				dlog("sessionCheckMsg: network error within validity window — will retry, not logging out")
+				m.toast = "network unavailable — retrying…"
+			} else if m.creds.Email != "" && m.creds.Password != "" {
 				dlog("sessionCheckMsg: attempting auto-renew")
 				m.toast = "session refreshing…"
 				cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
@@ -849,7 +905,9 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case sessionExpiryMsg:
 		dlog("sessionExpiryMsg: audio_token approaching expiry")
-		if m.creds.Email != "" && m.creds.Password != "" {
+		if sessionStillValid(m.sessionExpiresAt) {
+			dlog("sessionExpiryMsg: stale timer — session still valid until %s, ignoring", m.sessionExpiresAt.Format(time.RFC3339))
+		} else if m.creds.Email != "" && m.creds.Password != "" {
 			dlog("sessionExpiryMsg: attempting auto-renew")
 			m.toast = "session refreshing…"
 			cmds = append(cmds, autoRenewCmd(m.ctx, m.client, m.creds.Email, m.creds.Password, m.currentNetwork))
@@ -860,9 +918,15 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 
 	case autoRenewMsg:
 		if msg.err != nil {
-			dlog("autoRenewMsg: auto-renew FAILED err=%v — falling back to login overlay", msg.err)
-			m.toast = "session expired — sign in again"
-			m = m.initLoginInputs(false)
+			dlog("autoRenewMsg: auto-renew FAILED err=%v isNetwork=%t sessionValid=%t expiresAt=%s",
+				msg.err, isNetworkError(msg.err), sessionStillValid(m.sessionExpiresAt), m.sessionExpiresAt.Format(time.RFC3339))
+			if isNetworkError(msg.err) && sessionStillValid(m.sessionExpiresAt) {
+				dlog("autoRenewMsg: network error within validity window — keeping session, will retry on next check")
+				m.toast = "network unavailable — session still valid, retrying…"
+			} else {
+				m.toast = "session expired — sign in again"
+				m = m.initLoginInputs(false)
+			}
 		} else {
 			dlog("autoRenewMsg: auto-renew OK — session refreshed silently")
 			m.creds = msg.creds
@@ -927,6 +991,25 @@ func (m Model) handleDomain(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// pushMediaTitle sends structured artist/title to the mpv Lua script so
+// macOS Now Playing (and MPRIS on Linux) shows clean API-sourced metadata
+// instead of the raw ICY stream title which often has encoding artifacts.
+func (m *Model) pushMediaTitle() {
+	if m.player == nil {
+		return
+	}
+	t := m.currentTrack
+	artist, title := t.Artist, t.Title
+	if artist == "" && title == "" {
+		if t.Track == "" {
+			return
+		}
+		title = t.Track
+	}
+	dlog("pushMediaTitle: artist=%q title=%q (raw track=%q)", artist, title, t.Track)
+	_ = m.player.SetTrackMetadata(artist, title)
 }
 
 // View dispatches to the active screen's renderer. Overlays (network

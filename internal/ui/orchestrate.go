@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,9 +20,11 @@ import (
 // -----------------------------------------------------------------------------
 
 type (
-	playerReadyMsg    struct{ p AudioPlayer }
-	playerErrorMsg    struct{ err error }
-	playerStateMsg    struct{ state player.State }
+	playerReadyMsg        struct{ p AudioPlayer }
+	playerErrorMsg        struct{ err error }
+	playerStateMsg        struct{ state player.State }
+	mpvMediaTitleMsg      struct{ title string }
+	mpvMetadataChangedMsg struct{}
 	channelsLoadedMsg struct{ channels []audioaddict.Channel }
 	channelsErrorMsg struct {
 		err          error
@@ -49,6 +52,10 @@ type (
 		url, escape string
 		err         error
 	}
+
+	// fanartRefreshMsg is sent after FocusMsg clears the fanart escape.
+	// It re-populates from cache so the image re-renders on the next View.
+	fanartRefreshMsg struct{}
 
 	// trackVoteLoadedMsg carries the result of looking up the current
 	// user's vote state for a track via FetchTrack + bloom-filter check.
@@ -191,6 +198,12 @@ func pumpPlayerEventsCmd(p AudioPlayer) tea.Cmd {
 		if ev.Err != nil {
 			return playerErrorMsg{err: ev.Err}
 		}
+		if ev.MediaTitle != "" {
+			return mpvMediaTitleMsg{title: ev.MediaTitle}
+		}
+		if ev.MetadataChanged {
+			return mpvMetadataChangedMsg{}
+		}
 		return playerStateMsg{state: ev.State}
 	}
 }
@@ -215,7 +228,7 @@ func playSelectedCmd(ctx context.Context, client AudioClient, p AudioPlayer, net
 		if err == nil && result != nil && len(result.Tracks) > 0 {
 			audioURL := result.Tracks[0].AudioURL()
 			if audioURL != "" {
-				dlog("playSelectedCmd: per-track mode — %d tracks, playing first (%s)", len(result.Tracks), result.Tracks[0].Track)
+				dlog("playSelectedCmd: per-track mode — %d tracks, playing first (%s) url=%s", len(result.Tracks), result.Tracks[0].Track, audioURL)
 				if err := p.Play(audioURL); err != nil {
 					return streamErrorMsg{err: err}
 				}
@@ -260,8 +273,10 @@ func fetchTrackCmd(parent context.Context, client AudioClient, network string, c
 			if errors.Is(err, audioaddict.ErrUnauthorized) {
 				return trackErrorMsg{err: err, unauthorized: true}
 			}
+			dlog("fetchTrackCmd: channelID=%d gen=%d err=%v (tick chain continues via caller)", channelID, gen, err)
 			return nil
 		}
+		dlog("fetchTrackCmd: channelID=%d artist=%q title=%q track=%q", channelID, track.Artist, track.Title, track.Track)
 		return trackUpdateMsg{channelID: channelID, track: track, gen: gen}
 	}
 }
@@ -272,6 +287,12 @@ func fetchTrackCmd(parent context.Context, client AudioClient, network string, c
 // when the user switches channels. parent is m.ctx — see fetchTrackCmd.
 func tickTrackCmd(parent context.Context, client AudioClient, network string, channelID int64, gen uint64) tea.Cmd {
 	return tea.Tick(15*time.Second, func(time.Time) tea.Msg {
+		parentErr := parent.Err()
+		dlog("tickTrackCmd: FIRED channelID=%d gen=%d parentCtx.Err=%v", channelID, gen, parentErr)
+		if parentErr != nil {
+			dlog("tickTrackCmd: channelID=%d gen=%d parent context already done — tick chain DEAD", channelID, gen)
+			return nil
+		}
 		ctx, cancel := context.WithTimeout(parent, 5*time.Second)
 		defer cancel()
 		track, err := client.CurrentlyPlaying(ctx, network, channelID)
@@ -279,8 +300,11 @@ func tickTrackCmd(parent context.Context, client AudioClient, network string, ch
 			if errors.Is(err, audioaddict.ErrUnauthorized) {
 				return trackErrorMsg{err: err, unauthorized: true}
 			}
+			dlog("tickTrackCmd: channelID=%d gen=%d err=%v isTimeout=%t isCtxCancel=%t — tick chain DEAD (no reschedule on nil return)",
+				channelID, gen, err, errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled))
 			return nil
 		}
+		dlog("tickTrackCmd: channelID=%d artist=%q title=%q track=%q", channelID, track.Artist, track.Title, track.Track)
 		return trackUpdateMsg{channelID: channelID, track: track, gen: gen}
 	})
 }
@@ -380,7 +404,7 @@ func skipTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, networ
 				dlog("skipTrackCmd: track %d has no audio URL", rt.TrackID)
 				return skipErrMsg{err: fmt.Errorf("track has no audio URL")}
 			}
-			dlog("skipTrackCmd: playing next track %d (%s)", rt.TrackID, rt.Track)
+			dlog("skipTrackCmd: playing next track %d (%s) url=%s", rt.TrackID, rt.Track, audioURL)
 			if err := p.Play(audioURL); err != nil {
 				dlog("skipTrackCmd: p.Play FAIL err=%v", err)
 				return skipErrMsg{err: err}
@@ -428,7 +452,7 @@ func advanceTrackCmd(ctx context.Context, client AudioClient, p AudioPlayer, net
 		if audioURL == "" {
 			return trackAdvanceErrMsg{err: fmt.Errorf("track has no audio URL")}
 		}
-		dlog("advanceTrackCmd: playing track %d (%s)", rt.TrackID, rt.Track)
+		dlog("advanceTrackCmd: playing track %d (%s) url=%s", rt.TrackID, rt.Track, audioURL)
 		if err := p.Play(audioURL); err != nil {
 			return trackAdvanceErrMsg{err: err}
 		}
@@ -629,6 +653,46 @@ func scheduleSessionExpiryCmd(expiresOn string) tea.Cmd {
 	return tea.Tick(delay, func(time.Time) tea.Msg {
 		return sessionExpiryMsg{}
 	})
+}
+
+// parseExpiresOn parses the expires_on timestamp from the routine API.
+func parseExpiresOn(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, fmt.Errorf("empty")
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		t, err = time.Parse("2006-01-02T15:04:05.000Z", s)
+	}
+	return t, err
+}
+
+// isNetworkError returns true for errors caused by DNS resolution, TCP
+// connection, or timeout failures — as opposed to a successful HTTP
+// round-trip that returned a 401/403. Used to distinguish "internet is
+// down" from "auth is dead".
+func isNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true
+	}
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		return true
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return true
+	}
+	return false
+}
+
+// sessionStillValid returns true when the cached session token has not yet
+// reached its server-issued expiry timestamp.
+func sessionStillValid(expiresAt time.Time) bool {
+	return !expiresAt.IsZero() && time.Now().Before(expiresAt)
 }
 
 // autoRenewMsg carries the result of a background re-authenticate attempt

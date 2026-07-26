@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -145,6 +146,130 @@ func waitForMsg(t *testing.T, cmd tea.Cmd, _ time.Duration) tea.Msg {
 	case <-time.After(5 * time.Second):
 		t.Fatal("cmd did not complete within 5s")
 		return nil
+	}
+}
+
+// TestWindowResize_kicksOffThumbsForNewlyVisibleCards verifies that when a
+// WindowSizeMsg arrives AFTER channels have loaded (e.g. the app started in
+// a background window and is now focused), thumbnails are fetched for cards
+// that became visible due to the larger viewport. Without the re-kick in
+// handleDomain's WindowSizeMsg branch, cards outside the initial (height=0)
+// viewport would stay blank until the user scrolled.
+func TestWindowResize_kicksOffThumbsForNewlyVisibleCards(t *testing.T) {
+	t.Setenv("ADDIPLAY_FANART_MODE", "ascii")
+	t.Setenv("COLORTERM", "truecolor")
+
+	m := newTestModel(t)
+	channels := make([]audioaddict.Channel, 20)
+	for i := range channels {
+		channels[i] = audioaddict.Channel{
+			ID:   int64(i + 1),
+			Key:  fmt.Sprintf("ch%02d", i),
+			Name: fmt.Sprintf("Channel %02d", i),
+			Image: audioaddict.Image{
+				Square: fmt.Sprintf("//cdn.example/%02d.png{?size,height,width,quality,pad}", i),
+			},
+		}
+	}
+
+	// Step 1: Load channels at a small height (simulates channels arriving
+	// before the terminal reports its actual size — height is 0 or very
+	// small when the window is not in focus).
+	m.width = 140
+	m.height = 0
+	m.channels = channels
+	m.channelThumbs = map[string]string{}
+	_ = m.kickoffVisibleThumbs()
+	thumbsBefore := len(m.channelThumbs)
+
+	// Step 2: WindowSizeMsg arrives with a real size — simulates the
+	// terminal window gaining focus and reporting its actual dimensions.
+	m2, cmd := m.Update(tea.WindowSizeMsg{Width: 140, Height: 60})
+	mm := m2.(Model)
+
+	// After resize, more cards should be visible. The handler should have
+	// dispatched kickoffVisibleThumbs, populating in-flight markers for
+	// newly-visible cards. Count how many entries we have now.
+	thumbsAfter := len(mm.channelThumbs)
+
+	if thumbsAfter <= thumbsBefore {
+		t.Errorf("WindowSizeMsg should trigger thumbnail loads for newly-visible cards; "+
+			"before=%d after=%d (no new fetches)", thumbsBefore, thumbsAfter)
+	}
+	if cmd == nil {
+		t.Error("expected batch Cmd from WindowSizeMsg with pending thumb fetches")
+	}
+}
+
+// TestFanartLoads_withoutUserInteraction verifies that the Now Playing
+// fanart loads correctly through domain events alone — no key presses
+// required. Simulates the scenario where the app is playing in the
+// background (not focused) and a track change triggers a fanart refresh.
+func TestFanartLoads_withoutUserInteraction(t *testing.T) {
+	t.Setenv("ADDIPLAY_FANART_MODE", "ascii")
+	t.Setenv("COLORTERM", "truecolor")
+
+	m := newTestModel(t)
+	ch := audioaddict.Channel{
+		ID:  90,
+		Key: "classictrance",
+		Image: audioaddict.Image{
+			Square: "//cdn-images.audioaddict.com/CHAN/SQUARE.png{?size,height,width,quality,pad}",
+		},
+	}
+	m.channels = []audioaddict.Channel{ch}
+	m.currentChannel = "classictrance"
+	m.playingNetwork = "di"
+	m.currentNetwork = "di"
+
+	// Step 1: streamPlayingMsg arrives (domain event, no user interaction).
+	m2, cmd1 := m.Update(streamPlayingMsg{network: "di", channel: ch})
+	mm := m2.(Model)
+
+	// Should have dispatched a fanart fetch command.
+	if mm.fanartSourceURL == "" {
+		t.Error("streamPlayingMsg should set fanartSourceURL")
+	}
+	if cmd1 == nil {
+		t.Error("streamPlayingMsg should return commands (track fetch, fanart, etc.)")
+	}
+
+	// Step 2: Simulate fanart arriving (domain event).
+	const fakeEscape = "FAKE_FANART_ESCAPE_DATA"
+	m3, _ := mm.Update(fanartReadyMsg{url: mm.fanartSourceURL, escape: fakeEscape})
+	mm2 := m3.(Model)
+
+	if mm2.fanartEscape != fakeEscape {
+		t.Errorf("fanartReadyMsg should update fanartEscape; got %q want %q",
+			mm2.fanartEscape, fakeEscape)
+	}
+
+	// Step 3: Track change arrives (another domain event, no user interaction).
+	track := audioaddict.Track{
+		ID:     42,
+		Artist: "Cosmic Gate",
+		Title:  "Exploration of Space",
+		ArtURL: "//cdn-images.audioaddict.com/TRACK/abc123.webp",
+	}
+	m4, cmd2 := mm2.Update(trackUpdateMsg{
+		channelID: 90,
+		track:     track,
+		gen:       mm2.trackTickGen,
+	})
+	mm3 := m4.(Model)
+
+	// Should have updated the fanart source to the track art.
+	if !strings.Contains(mm3.fanartSourceURL, "abc123") {
+		t.Errorf("trackUpdateMsg should switch fanartSourceURL to track art; got %q",
+			mm3.fanartSourceURL)
+	}
+	if cmd2 == nil {
+		t.Error("trackUpdateMsg with new art should dispatch a fanart fetch")
+	}
+
+	// Old escape should remain visible (no-flash invariant).
+	if mm3.fanartEscape != fakeEscape {
+		t.Errorf("stale escape should persist during fetch; got %q", mm3.fanartEscape)
 	}
 }
 

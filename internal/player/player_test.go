@@ -23,12 +23,12 @@ func TestPlayer_sendsLoadfileToMPV(t *testing.T) {
 	if err := p.Play("http://example.com/stream"); err != nil {
 		t.Fatal(err)
 	}
-	// observe_property (startup) + loadfile + set_property pause false
-	mpv.WaitCommand(t, 3)
+	// 3 observe_property (startup: pause + media-title + metadata) + loadfile + set_property pause false
+	mpv.WaitCommand(t, 5)
 
 	cmds := mpv.Commands()
-	// Skip the observe_property command sent at startup.
-	load, _ := cmds[1]["command"].([]any)
+	// Skip the three observe_property commands sent at startup.
+	load, _ := cmds[3]["command"].([]any)
 	if len(load) < 2 || load[0] != "loadfile" || load[1] != "http://example.com/stream" {
 		t.Errorf("loadfile command = %v, want loadfile <url>", load)
 	}
@@ -49,14 +49,14 @@ func TestPlayer_pauseResumeStop(t *testing.T) {
 	_ = p.Pause()
 	_ = p.Resume()
 	_ = p.Stop()
-	// observe_property + loadfile + unpause + pause + resume + stop = 6
-	mpv.WaitCommand(t, 6)
+	// 3 observe_property + loadfile + unpause + pause + resume + stop = 8
+	mpv.WaitCommand(t, 8)
 
 	cmds := mpv.Commands()
-	// Skip observe_property at index 0.
+	// Skip 3 observe_property at indices 0-2.
 	wantHeads := []string{"loadfile", "set_property", "set_property", "set_property", "stop"}
 	for i, want := range wantHeads {
-		got, _ := cmds[i+1]["command"].([]any)
+		got, _ := cmds[i+3]["command"].([]any)
 		if len(got) == 0 || got[0] != want {
 			t.Errorf("cmd[%d] head = %v, want %q", i, got, want)
 		}
@@ -76,13 +76,13 @@ func TestPlayer_setVolumeClamps(t *testing.T) {
 
 	_ = p.SetVolume(-10)
 	_ = p.SetVolume(150)
-	// observe_property + 2 set_property volume = 3
-	mpv.WaitCommand(t, 3)
+	// 3 observe_property + 2 set_property volume = 5
+	mpv.WaitCommand(t, 5)
 
 	cmds := mpv.Commands()
-	// Skip observe_property at index 0.
-	c1, _ := cmds[1]["command"].([]any)
-	c2, _ := cmds[2]["command"].([]any)
+	// Skip 3 observe_property at indices 0-2.
+	c1, _ := cmds[3]["command"].([]any)
+	c2, _ := cmds[4]["command"].([]any)
 	if got := c1[len(c1)-1]; got != float64(0) {
 		t.Errorf("volume clamp low: got %v, want 0", got)
 	}

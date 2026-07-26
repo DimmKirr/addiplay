@@ -29,6 +29,7 @@ func runDemo(ctx context.Context) error {
 		ui.NewModel(ctx, demo.Creds(), client, newPlayer),
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
+		tea.WithReportFocus(),
 	)
 	_, err := p.Run()
 	return err
